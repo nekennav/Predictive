@@ -20,25 +20,14 @@ st.markdown(
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
-        background-color: #1a1a2e; /* Dark purple-blue fallback color */
-        animation: panningBackground 20s linear infinite;
+        background-color: rgba(26, 26, 46, 0.9); /* Dark purple-blue semi-transparent fallback */
         color: #e0e0e0; /* Light gray for text readability */
+        animation: panningBackground 20s linear infinite;
     }
     @keyframes panningBackground {
         0% { background-position: 50% 0%; }
         50% { background-position: 50% 100%; }
         100% { background-position: 50% 0%; }
-    }
-    /* Semi-transparent overlay for content readability */
-    .main-container {
-        background: rgba(26, 26, 46, 0.85); /* Dark purple-blue semi-transparent overlay */
-        padding: 30px;
-        border-radius: 15px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-        margin: 20px;
-        max-width: 90vw; /* Responsive width */
-        margin-left: auto;
-        margin-right: auto;
     }
     /* Title styling with abstract-inspired colors and white stroke */
     h1 {
@@ -103,11 +92,6 @@ st.markdown(
     }
     /* Responsive design for mobile */
     @media (max-width: 600px) {
-        .main-container {
-            padding: 15px;
-            margin: 10px;
-            max-width: 95vw;
-        }
         h1 {
             font-size: 1.8rem; /* Smaller title on mobile */
         }
@@ -130,8 +114,9 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Wrap content in main container
-st.markdown('<div class="main-container">', unsafe_allow_html=True)
+# Initialize session state for show_data if not already set
+if 'show_data' not in st.session_state:
+    st.session_state.show_data = False
 
 # Check and update session schema
 def init_session(columns):
@@ -601,76 +586,71 @@ with col1:
 with col2:
     end_date = st.date_input("End Date", value=date(datetime.today().year, 12, 31))
 
-# Data preview section
-st.header("Data Preview")
-if start_date <= end_date:
-    display_df, raw_df = filter_records_by_date(start_date, end_date)
-    if not display_df.empty:
-        st.dataframe(display_df, use_container_width=True)
+# Show All button
+if st.button("Show All"):
+    st.session_state.show_data = True
+
+# Display data sections only if show_data is True
+if st.session_state.get('show_data', False):
+    # TOTAL section
+    st.header("TOTAL PER AGENT")
+    if start_date <= end_date:
+        _, raw_df = filter_records_by_date(start_date, end_date)
+        if not raw_df.empty:
+            totals_df = calculate_agent_totals(raw_df)
+            if not totals_df.empty:
+                st.dataframe(totals_df, use_container_width=True)
+            else:
+                st.warning("No data available for total calculations or required columns are missing.")
+        else:
+            st.warning("No data found for the selected date range.")
     else:
-        st.warning("No data found for the selected date range.")
+        st.error("Start date must be before or equal to end date.")
         raw_df = pd.DataFrame()
-else:
-    st.error("Start date must be before or equal to end date.")
-    display_df, raw_df = pd.DataFrame(), pd.DataFrame()
 
-# TOTAL section
-st.header("TOTAL PER AGENT")
-if not raw_df.empty:
-    totals_df = calculate_agent_totals(raw_df)
-    if not totals_df.empty:
-        st.dataframe(totals_df, use_container_width=True)
+    # AVERAGE DAILY PER AGENT section
+    st.header("AVERAGE DAILY PER AGENT")
+    if not raw_df.empty:
+        daily_averages_df = calculate_daily_agent_averages(raw_df)
+        if not daily_averages_df.empty:
+            st.dataframe(daily_averages_df, use_container_width=True)
+        else:
+            st.warning("No data available for daily agent average calculations or required columns (e.g., 'Collector Name', 'Date') are missing.")
     else:
-        st.warning("No data available for total calculations or required columns are missing.")
-else:
-    st.warning("No data to display totals.")
+        st.warning("No data to display daily agent averages.")
 
-# AVERAGE DAILY PER AGENT section
-st.header("AVERAGE DAILY PER AGENT")
-if not raw_df.empty:
-    daily_averages_df = calculate_daily_agent_averages(raw_df)
-    if not daily_averages_df.empty:
-        st.dataframe(daily_averages_df, use_container_width=True)
+    # AVERAGE PER CAMPAIGN section
+    st.header("AVERAGE PER CAMPAIGN")
+    if not raw_df.empty:
+        campaign_averages_df = calculate_campaign_averages(raw_df)
+        if not campaign_averages_df.empty:
+            st.dataframe(campaign_averages_df, use_container_width=True)
+        else:
+            st.warning("No data available for campaign average calculations or required columns are missing. Please ensure uploaded files include a 'Campaign' column with valid values like 'SBC CURING B2', 'SBC RECOVERY', etc.")
     else:
-        st.warning("No data available for daily agent average calculations or required columns (e.g., 'Collector Name', 'Date') are missing.")
-else:
-    st.warning("No data to display daily agent averages.")
+        st.warning("No data to display campaign averages.")
 
-# AVERAGE PER CAMPAIGN section
-st.header("AVERAGE PER CAMPAIGN")
-if not raw_df.empty:
-    campaign_averages_df = calculate_campaign_averages(raw_df)
-    if not campaign_averages_df.empty:
-        st.dataframe(campaign_averages_df, use_container_width=True)
-    else:
-        st.warning("No data available for campaign average calculations or required columns are missing. Please ensure uploaded files include a 'Campaign' column with valid values like 'SBC CURING B2', 'SBC RECOVERY', etc.")
-else:
-    st.warning("No data to display campaign averages.")
-
-# Single download button for Excel
-if not display_df.empty:
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        excel_df = raw_df.copy()
-        # Reorder columns to match uploaded file order, with filename first
-        data_cols = [col for col in excel_df.columns if col not in ['filename', 'upload_date']]
-        cols = ['filename'] + data_cols + ['upload_date']
-        excel_df = excel_df[cols]
-        excel_df.to_excel(writer, index=False, sheet_name='Sheet1')
-        workbook = writer.book
-        worksheet = writer.sheets['Sheet1']
-        for col_idx in range(1, len(excel_df.columns) + 1):
-            col_letter = get_column_letter(col_idx)
-            for row in range(1, len(excel_df) + 2):
-                cell = worksheet[f"{col_letter}{row}"]
-                cell.alignment = Alignment(horizontal='left') # Align left to preserve raw format
-    output.seek(0)
-    st.download_button(
-        label="Download data as Excel",
-        data=output,
-        file_name=f"data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-
-# Close main container
-st.markdown('</div>', unsafe_allow_html=True)
+    # Single download button for Excel
+    if not raw_df.empty:
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            excel_df = raw_df.copy()
+            # Reorder columns to match uploaded file order, with filename first
+            data_cols = [col for col in excel_df.columns if col not in ['filename', 'upload_date']]
+            cols = ['filename'] + data_cols + ['upload_date']
+            excel_df = excel_df[cols]
+            excel_df.to_excel(writer, index=False, sheet_name='Sheet1')
+            workbook = writer.book
+            worksheet = writer.sheets['Sheet1']
+            for col_idx in range(1, len(excel_df.columns) + 1):
+                col_letter = get_column_letter(col_idx)
+                for row in range(1, len(excel_df) + 2):
+                    cell = worksheet[f"{col_letter}{row}"]
+                    cell.alignment = Alignment(horizontal='left') # Align left to preserve raw format
+        output.seek(0)
+        st.download_button(
+            label="Download data as Excel",
+            data=output,
+            file_name=f"data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
