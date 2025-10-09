@@ -652,27 +652,44 @@ if st.session_state.get('show_data', False):
     else:
         st.warning("No data to display campaign averages.")
     
-    # Single download button for Excel
+    # Single download button for Excel with three sheets
     if not raw_df.empty:
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            excel_df = raw_df.copy()
-            # Reorder columns to match uploaded file order, with filename first
-            data_cols = [col for col in excel_df.columns if col not in ['filename', 'upload_date']]
-            cols = ['filename'] + data_cols + ['upload_date']
-            excel_df = excel_df[cols]
-            excel_df.to_excel(writer, index=False, sheet_name='Sheet1')
-            workbook = writer.book
-            worksheet = writer.sheets['Sheet1']
-            for col_idx in range(1, len(excel_df.columns) + 1):
-                col_letter = get_column_letter(col_idx)
-                for row in range(1, len(excel_df) + 2):
-                    cell = worksheet[f"{col_letter}{row}"]
-                    cell.alignment = Alignment(horizontal='left') # Align left to preserve raw format
+            # Write Total per Agent
+            if not totals_df.empty:
+                totals_df.to_excel(writer, index=False, sheet_name='Total per Agent')
+                worksheet = writer.sheets['Total per Agent']
+                for col_idx in range(1, len(totals_df.columns) + 1):
+                    col_letter = get_column_letter(col_idx)
+                    for row in range(1, len(totals_df) + 2):
+                        cell = worksheet[f"{col_letter}{row}"]
+                        cell.alignment = Alignment(horizontal='left')
+            
+            # Write Average Daily per Agent
+            if not daily_averages_df.empty:
+                daily_averages_df.to_excel(writer, index=False, sheet_name='Average Daily per Agent')
+                worksheet = writer.sheets['Average Daily per Agent']
+                for col_idx in range(1, len(daily_averages_df.columns) + 1):
+                    col_letter = get_column_letter(col_idx)
+                    for row in range(1, len(daily_averages_df) + 2):
+                        cell = worksheet[f"{col_letter}{row}"]
+                        cell.alignment = Alignment(horizontal='left')
+            
+            # Write Average per Campaign
+            if not campaign_averages_df.empty:
+                campaign_averages_df.to_excel(writer, index=False, sheet_name='Average per Campaign')
+                worksheet = writer.sheets['Average per Campaign']
+                for col_idx in range(1, len(campaign_averages_df.columns) + 1):
+                    col_letter = get_column_letter(col_idx)
+                    for row in range(1, len(campaign_averages_df) + 2):
+                        cell = worksheet[f"{col_letter}{row}"]
+                        cell.alignment = Alignment(horizontal='left')
+        
         output.seek(0)
         st.download_button(
             label="Download data as Excel",
             data=output,
-            file_name=f"data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            file_name=f"summary_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
