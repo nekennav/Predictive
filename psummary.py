@@ -54,6 +54,11 @@ st.markdown(
         color: #e0e0e0; /* Light gray for file uploader label */
         font-size: 1.1rem; /* Base font size */
     }
+    /* File uploader button text ("Browse files") */
+    .stFileUploader input[type="file"]::file-selector-button {
+        color: #000000; /* Black color for "Browse files" text */
+        font-size: 1rem; /* Match button font size */
+    }
     /* Button styling */
     .stButton > button {
         background-color: #a28aff; /* Vibrant purple */
@@ -68,6 +73,10 @@ st.markdown(
     .stButton > button:hover {
         background-color: #8b74e6; /* Darker purple on hover */
         border-color: #a28aff; /* Purple on hover */
+    }
+    /* Download button text ("Download data as Excel") */
+    .stDownloadButton > button {
+        color: #000000; /* Black color for download button text */
     }
     /* Text area and dataframe styling */
     .stTextArea textarea, .stDataFrame {
@@ -115,6 +124,12 @@ st.markdown(
         }
         .stDateInput label {
             font-size: 0.9rem; /* Smaller date input label on mobile */
+        }
+        .stFileUploader input[type="file"]::file-selector-button {
+            font-size: 0.85rem; /* Smaller file uploader button text on mobile */
+        }
+        .stDownloadButton > button {
+            font-size: 0.85rem; /* Smaller download button text on mobile */
         }
     }
     </style>
