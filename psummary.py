@@ -90,6 +90,11 @@ st.markdown(
         font-family: 'Arial', sans-serif;
         font-size: 0.9rem; /* Base font size */
     }
+    /* Date input label styling */
+    .stDateInput label {
+        color: #ffffff; /* White color for date input labels */
+        font-size: 1.1rem; /* Match file uploader label size */
+    }
     /* Responsive design for mobile */
     @media (max-width: 600px) {
         h1 {
@@ -107,6 +112,9 @@ st.markdown(
         }
         .stTextArea textarea, .stDataFrame, .stAlert, .stText, table {
             font-size: 0.8rem; /* Smaller text on mobile */
+        }
+        .stDateInput label {
+            font-size: 0.9rem; /* Smaller date input label on mobile */
         }
     }
     </style>
@@ -129,16 +137,16 @@ def init_session(columns):
         normalized_columns[normalized_columns.index('Campaign Name')] = 'Campaign'
     elif 'CAMPAIGN NAME' in normalized_columns:
         normalized_columns[normalized_columns.index('CAMPAIGN NAME')] = 'Campaign'
-   
+  
     # Expected columns are those from the uploaded file plus 'filename', 'upload_date'
     expected_columns = ['filename'] + normalized_columns + ['upload_date']
-   
+  
     if 'df' not in st.session_state:
         st.session_state.df = pd.DataFrame(columns=expected_columns)
     else:
         # Get current columns
         current_columns = set(st.session_state.df.columns)
-       
+      
         if current_columns != set(expected_columns):
             # If schema doesn't match, recreate (reset)
             st.warning(f"Schema mismatch. Current columns: {list(current_columns)}, Expected: {expected_columns}. Resetting stored data.")
@@ -148,7 +156,7 @@ def init_session(columns):
 def save_file_to_session(uploaded_file):
     filename = secure_filename(uploaded_file.name)
     ext = os.path.splitext(filename)[1].lower()
-   
+  
     try:
         if ext == '.csv':
             df = pd.read_csv(uploaded_file, dtype=str) # Read as strings to preserve data
@@ -156,10 +164,10 @@ def save_file_to_session(uploaded_file):
             df = pd.read_excel(uploaded_file, dtype=str) # Read as strings to preserve data
         else:
             raise ValueError("Unsupported file type. Please upload CSV, XLS, or XLSX.")
-       
+      
         # Normalize column names (strip spaces, keep case)
         df.columns = df.columns.str.strip()
-       
+      
         # Normalize 'Campaign' column name variations (including all caps)
         campaign_variants = ['CAMPAIGN', 'campaign', 'Campaign Name', 'CAMPAIGN NAME']
         for variant in campaign_variants:
@@ -167,18 +175,18 @@ def save_file_to_session(uploaded_file):
                 df = df.rename(columns={variant: 'Campaign'})
                 st.info(f"Renamed column '{variant}' to 'Campaign' for consistency.")
                 break
-       
+      
         # Validate required columns
         required_cols = ['Collector Name', 'Campaign']
         if not all(col in df.columns for col in required_cols):
             raise ValueError(f"File must contain required columns: {', '.join(required_cols)}. Note: 'CAMPAIGN' should be renamed to 'Campaign'.")
-       
+      
         # Check for valid campaign values
         valid_campaigns = {'SBC CURING B2', 'SBC CURING B4', 'SBC RECOVERY', 'SBF RECOVERY'}
         if not df['Campaign'].isin(valid_campaigns | {''}).all():
             invalid_campaigns = df['Campaign'][~df['Campaign'].isin(valid_campaigns | {''})].unique()
             st.warning(f"Invalid campaign names found: {', '.join(invalid_campaigns)}. Expected: {', '.join(valid_campaigns)}")
-       
+      
         # Normalize Date column to MM/DD/YYYY with leading zeros
         if 'Date' in df.columns:
             def normalize_date(x):
@@ -192,22 +200,22 @@ def save_file_to_session(uploaded_file):
                         return x.strip()
                 return x
             df['Date'] = df['Date'].apply(normalize_date)
-       
+      
         # Initialize session with normalized columns from the file
         init_session(df.columns)
-       
+      
         upload_date = datetime.now().strftime('%Y-%m-%d')
-       
+      
         # Add metadata columns
         df['filename'] = filename
         df['upload_date'] = upload_date
-       
+      
         # Append to session df (columns already aligned by init)
         if st.session_state.df.empty:
             st.session_state.df = df
         else:
             st.session_state.df = pd.concat([st.session_state.df, df], ignore_index=True)
-       
+      
         return filename
     except Exception as e:
         raise Exception(f"Failed to process file: {str(e)}")
@@ -217,7 +225,7 @@ def get_all_records():
     try:
         if 'df' in st.session_state and not st.session_state.df.empty:
             df = st.session_state.df.copy()
-           
+          
             # Keep all data as strings, no datetime conversion
             display_df = df.copy()
             # Reorder columns to match uploaded file order, with filename first
@@ -237,13 +245,13 @@ def filter_records_by_date(start_date, end_date):
         # Convert input dates to MM/DD/YYYY for string comparison
         start_date_str = start_date.strftime('%m/%d/%Y')
         end_date_str = end_date.strftime('%m/%d/%Y')
-       
+      
         if 'df' not in st.session_state or st.session_state.df.empty:
             st.warning("No data stored in session.")
             return pd.DataFrame(), pd.DataFrame()
-       
+      
         df = st.session_state.df.copy()
-       
+      
         if 'Date' not in df.columns:
             st.warning("No 'Date' column found. Returning all data.")
             filtered_df = df
@@ -253,10 +261,10 @@ def filter_records_by_date(start_date, end_date):
                 filtered_df = df[df['Date'] == start_date_str]
             else:
                 filtered_df = df[df['Date'].between(start_date_str, end_date_str)]
-       
+      
         if filtered_df.empty:
             st.warning(f"No records found for date range {start_date_str} to {end_date_str}. Check if dates in the 'Date' column are in MM/DD/YYYY format.")
-       
+      
         # Keep all data as strings, no datetime conversion
         display_df = filtered_df.copy()
         # Reorder columns to match uploaded file order, with filename first
@@ -315,40 +323,40 @@ def calculate_agent_totals(df):
         ]
         # Ensure only available columns are used
         available_metrics = [col for col in metric_columns if col in df.columns]
-       
+      
         if 'Collector Name' not in df.columns or not available_metrics:
             missing_cols = [col for col in ['Collector Name'] + metric_columns if col not in df.columns]
             st.warning(f"Required columns missing: {', '.join(missing_cols)}. Cannot calculate totals.")
             return pd.DataFrame()
-       
+      
         # Check for Campaign column
         if 'Campaign' not in df.columns:
             st.warning("No 'Campaign' column found in data. Totals will be grouped by Collector Name only.")
             group_cols = ['Collector Name']
         else:
             group_cols = ['Collector Name', 'Campaign']
-       
+      
         # Create a copy to avoid modifying the input DataFrame
         df = df.copy()
-       
+      
         # Convert Total Calls to numeric
         if 'Total Calls' in available_metrics:
             df['Total Calls'] = pd.to_numeric(df['Total Calls'], errors='coerce').fillna(0.0)
-       
+      
         # Convert time columns to seconds
         time_metrics = [col for col in available_metrics if col != 'Total Calls']
         for col in time_metrics:
             df[f'{col}_seconds'] = df[col].apply(time_to_seconds).fillna(0.0)
-       
+      
         # Group by Collector Name and Campaign (if available)
         sum_cols = ['Total Calls'] + [f'{col}_seconds' for col in time_metrics]
         totals_df = df.groupby(group_cols)[sum_cols].sum().reset_index()
-       
+      
         # Convert summed seconds back to [H]:MM:SS for display
         for col in time_metrics:
             totals_df[col] = totals_df[f'{col}_seconds'].apply(seconds_to_time)
             totals_df = totals_df.drop(columns=[f'{col}_seconds']) # Clean up temp column
-       
+      
         # Calculate averages (in seconds per call, then to MM:SS)
         if 'Total Calls' in available_metrics and totals_df['Total Calls'].sum() > 0:
             for col in ['Talk Time', 'Wait Time', 'Write Time']:
@@ -360,7 +368,7 @@ def calculate_agent_totals(df):
                             if row['Total Calls'] > 0 else 0.0
                         ), axis=1
                     )
-       
+      
         # Reorder columns for display
         display_columns = ['Collector Name']
         if 'Campaign' in df.columns:
@@ -372,7 +380,7 @@ def calculate_agent_totals(df):
                 display_columns.append(col)
             if col in ['Talk Time', 'Wait Time', 'Write Time'] and col in available_metrics:
                 display_columns.append(f'AVG {col}')
-       
+      
         return totals_df[display_columns]
     except Exception as e:
         st.error(f"Error calculating totals: {str(e)}")
@@ -388,12 +396,12 @@ def calculate_daily_agent_averages(df):
         ]
         # Ensure only available columns are used
         available_metrics = [col for col in metric_columns if col in df.columns]
-       
+      
         if 'Collector Name' not in df.columns or 'Date' not in df.columns or not available_metrics:
             missing_cols = [col for col in ['Collector Name', 'Date'] + metric_columns if col not in df.columns]
             st.warning(f"Required columns missing: {', '.join(missing_cols)}. Cannot calculate daily averages.")
             return pd.DataFrame()
-       
+      
         # Check for Campaign column
         if 'Campaign' not in df.columns:
             st.warning("No 'Campaign' column found in data. Averages will be grouped by Collector Name only.")
@@ -402,32 +410,32 @@ def calculate_daily_agent_averages(df):
         else:
             group_cols = ['Collector Name', 'Campaign']
             daily_group_cols = ['Collector Name', 'Date', 'Campaign']
-       
+      
         # Create a copy to avoid modifying the input DataFrame
         df = df.copy()
-       
+      
         # Convert Total Calls to numeric
         if 'Total Calls' in available_metrics:
             df['Total Calls'] = pd.to_numeric(df['Total Calls'], errors='coerce').fillna(0.0)
-       
+      
         # Convert time columns to seconds
         time_metrics = [col for col in available_metrics if col != 'Total Calls']
         for col in time_metrics:
             df[f'{col}_seconds'] = df[col].apply(time_to_seconds).fillna(0.0)
-       
+      
         # Step 1: Group by Collector Name, Date, and Campaign (if available) to get daily metrics
         daily_mean_cols = ['Total Calls'] + [f'{col}_seconds' for col in time_metrics]
         daily_averages = df.groupby(daily_group_cols)[daily_mean_cols].mean().reset_index()
-       
+      
         # Step 2: Group by Collector Name and Campaign (if available) to average daily metrics
         mean_cols = ['Total Calls'] + [f'{col}_seconds' for col in time_metrics]
         averages_df = daily_averages.groupby(group_cols)[mean_cols].mean().reset_index()
-       
+      
         # Convert averaged seconds back to [H]:MM:SS for display
         for col in time_metrics:
             averages_df[col] = averages_df[f'{col}_seconds'].apply(seconds_to_time)
             averages_df = averages_df.drop(columns=[f'{col}_seconds']) # Clean up temp column
-       
+      
         # Calculate per-call averages (in seconds per call, then to MM:SS)
         if 'Total Calls' in available_metrics and averages_df['Total Calls'].sum() > 0:
             for col in ['Talk Time', 'Wait Time', 'Write Time']:
@@ -439,7 +447,7 @@ def calculate_daily_agent_averages(df):
                             if row['Total Calls'] > 0 else 0.0
                         ), axis=1
                     )
-       
+      
         # Reorder columns for display
         display_columns = ['Collector Name']
         if 'Campaign' in df.columns:
@@ -451,7 +459,7 @@ def calculate_daily_agent_averages(df):
                 display_columns.append(col)
             if col in ['Talk Time', 'Wait Time', 'Write Time'] and col in available_metrics:
                 display_columns.append(f'AVG {col}')
-       
+      
         return averages_df[display_columns]
     except Exception as e:
         st.error(f"Error calculating daily agent averages: {str(e)}")
@@ -467,38 +475,38 @@ def calculate_campaign_averages(df):
         ]
         # Ensure only available columns are used
         available_metrics = [col for col in metric_columns if col in df.columns]
-       
+      
         if 'Campaign' not in df.columns or not available_metrics:
             missing_cols = [col for col in ['Campaign'] + metric_columns if col not in df.columns]
             st.warning(f"Required columns missing for campaign averages: {', '.join(missing_cols)}. Please ensure uploaded files include a 'Campaign' column with values like 'SBC CURING B2', 'SBC RECOVERY', etc.")
             return pd.DataFrame()
-       
+      
         # Create a copy to avoid modifying the input DataFrame
         df = df.copy()
-       
+      
         # Warn if all Campaign values are empty or null
         if df['Campaign'].isna().all() or (df['Campaign'] == '').all():
             st.warning("All 'Campaign' values are empty or null. Please ensure the 'Campaign' column contains valid values like 'SBC CURING B2', 'SBC RECOVERY', etc.")
             return pd.DataFrame()
-       
+      
         # Convert Total Calls to numeric
         if 'Total Calls' in available_metrics:
             df['Total Calls'] = pd.to_numeric(df['Total Calls'], errors='coerce').fillna(0.0)
-       
+      
         # Convert time columns to seconds
         time_metrics = [col for col in available_metrics if col != 'Total Calls']
         for col in time_metrics:
             df[f'{col}_seconds'] = df[col].apply(time_to_seconds).fillna(0.0)
-       
+      
         # Group by Campaign and calculate mean for the metrics
         mean_cols = ['Total Calls'] + [f'{col}_seconds' for col in time_metrics]
         averages_df = df.groupby('Campaign')[mean_cols].mean().reset_index()
-       
+      
         # Convert averaged seconds back to [H]:MM:SS for display
         for col in time_metrics:
             averages_df[col] = averages_df[f'{col}_seconds'].apply(seconds_to_time)
             averages_df = averages_df.drop(columns=[f'{col}_seconds']) # Clean up temp column
-       
+      
         # Calculate per-call averages (in seconds per call, then to MM:SS)
         if 'Total Calls' in available_metrics and averages_df['Total Calls'].sum() > 0:
             for col in ['Talk Time', 'Wait Time', 'Write Time']:
@@ -510,7 +518,7 @@ def calculate_campaign_averages(df):
                             if row['Total Calls'] > 0 else 0.0
                         ), axis=1
                     )
-       
+      
         # Reorder columns for display
         display_columns = ['Campaign']
         if 'Total Calls' in available_metrics:
@@ -520,7 +528,7 @@ def calculate_campaign_averages(df):
                 display_columns.append(col)
             if col in ['Talk Time', 'Wait Time', 'Write Time'] and col in available_metrics:
                 display_columns.append(f'AVG {col}')
-       
+      
         return averages_df[display_columns]
     except Exception as e:
         st.error(f"Error calculating campaign averages: {str(e)}")
@@ -558,7 +566,7 @@ if uploaded_file is not None:
         st.dataframe(preview_df, use_container_width=True)
     except Exception as e:
         st.error(f"Error previewing file: {str(e)}")
-   
+  
     if st.button("Upload"):
         try:
             filename = save_file_to_session(uploaded_file)
@@ -579,7 +587,6 @@ if 'df' in st.session_state and not st.session_state.df.empty and 'Date' in st.s
             default_start_date = valid_dates.min().date()
     except Exception as e:
         st.warning(f"Error determining earliest date: {str(e)}. Using today's date as default.")
-
 col1, col2 = st.columns(2)
 with col1:
     start_date = st.date_input("Start Date", value=default_start_date)
@@ -607,7 +614,7 @@ if st.session_state.get('show_data', False):
     else:
         st.error("Start date must be before or equal to end date.")
         raw_df = pd.DataFrame()
-
+    
     # AVERAGE DAILY PER AGENT section
     st.header("AVERAGE DAILY PER AGENT")
     if not raw_df.empty:
@@ -618,7 +625,7 @@ if st.session_state.get('show_data', False):
             st.warning("No data available for daily agent average calculations or required columns (e.g., 'Collector Name', 'Date') are missing.")
     else:
         st.warning("No data to display daily agent averages.")
-
+    
     # AVERAGE PER CAMPAIGN section
     st.header("AVERAGE PER CAMPAIGN")
     if not raw_df.empty:
@@ -629,7 +636,7 @@ if st.session_state.get('show_data', False):
             st.warning("No data available for campaign average calculations or required columns are missing. Please ensure uploaded files include a 'Campaign' column with valid values like 'SBC CURING B2', 'SBC RECOVERY', etc.")
     else:
         st.warning("No data to display campaign averages.")
-
+    
     # Single download button for Excel
     if not raw_df.empty:
         output = io.BytesIO()
