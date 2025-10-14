@@ -152,6 +152,9 @@ st.markdown(
 if 'show_data' not in st.session_state:
     st.session_state.show_data = False
 
+if 'last_uploaded_file' not in st.session_state:
+    st.session_state.last_uploaded_file = None
+
 # Check and update session schema
 def init_session(columns):
     normalized_columns = [col.strip() for col in columns]
@@ -566,6 +569,7 @@ st.title("PREDICTIVE SUMMARY")
 # File upload section
 st.header("Upload a File")
 uploaded_file = st.file_uploader("Choose a file", type=['csv', 'xls', 'xlsx'])
+
 if uploaded_file is not None:
     # Show preview of the uploaded file
     st.subheader("File Preview")
@@ -592,10 +596,13 @@ if uploaded_file is not None:
         st.dataframe(preview_df, use_container_width=True, height=300)
     except Exception as e:
         st.error(f"Error previewing file: {str(e)}")
-  
-    if st.button("Upload"):
+
+    # Automatic upload
+    current_file_name = uploaded_file.name
+    if st.session_state.last_uploaded_file != current_file_name:
         try:
             filename = save_file_to_session(uploaded_file)
+            st.session_state.last_uploaded_file = current_file_name
             st.markdown(f'<p style="color:white;">Data from \'{filename}\' uploaded and stored successfully!</p>', unsafe_allow_html=True)
         except Exception as e:
             st.error(f"Error: {str(e)}")
