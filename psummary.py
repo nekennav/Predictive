@@ -104,6 +104,17 @@ st.markdown(
         color: #ffffff; /* White color for date input labels */
         font-size: 1.1rem; /* Match file uploader label size */
     }
+    /* Date input text color */
+    .stDateInput > div > div > input {
+        color: #000000 !important;
+    }
+    /* Search input styling */
+    div[data-baseweb="input"] input {
+        background-color: rgba(162, 138, 255, 0.15);
+        color: #000000;
+        border: 1px solid #a28aff;
+        border-radius: 8px;
+    }
     /* Responsive design for mobile */
     @media (max-width: 600px) {
         h1 {
@@ -578,14 +589,14 @@ if uploaded_file is not None:
                         return x.strip()
                 return x
             preview_df['Date'] = preview_df['Date'].apply(normalize_date)
-        st.dataframe(preview_df, use_container_width=True)
+        st.dataframe(preview_df, use_container_width=True, height=300)
     except Exception as e:
         st.error(f"Error previewing file: {str(e)}")
   
     if st.button("Upload"):
         try:
             filename = save_file_to_session(uploaded_file)
-            st.success(f"Data from '{filename}' uploaded and stored successfully!")
+            st.markdown(f'<p style="color:white;">Data from \'{filename}\' uploaded and stored successfully!</p>', unsafe_allow_html=True)
         except Exception as e:
             st.error(f"Error: {str(e)}")
 
@@ -621,7 +632,14 @@ if st.session_state.get('show_data', False):
         if not raw_df.empty:
             totals_df = calculate_agent_totals(raw_df)
             if not totals_df.empty:
-                st.dataframe(totals_df, use_container_width=True)
+                st.markdown('<p style="color:white;">Search for Agent (Total)</p>', unsafe_allow_html=True)
+                search_agent_total = st.text_input("", placeholder="🔍 Search agents (comma-separated for multiple)", key="search_total")
+                if search_agent_total:
+                    agents = [agent.strip() for agent in search_agent_total.split(',')]
+                    filtered_totals = totals_df[totals_df['Collector Name'].str.contains('|'.join(agents), case=False, na=False)]
+                    st.dataframe(filtered_totals, use_container_width=True)
+                else:
+                    st.write("Enter agent name(s) to search.")
             else:
                 st.warning("No data available for total calculations or required columns are missing.")
         else:
@@ -635,7 +653,14 @@ if st.session_state.get('show_data', False):
     if not raw_df.empty:
         daily_averages_df = calculate_daily_agent_averages(raw_df)
         if not daily_averages_df.empty:
-            st.dataframe(daily_averages_df, use_container_width=True)
+            st.markdown('<p style="color:white;">Search for Agent (Daily Average)</p>', unsafe_allow_html=True)
+            search_agent_daily = st.text_input("", placeholder="🔍 Search agents (comma-separated for multiple)", key="search_daily")
+            if search_agent_daily:
+                agents = [agent.strip() for agent in search_agent_daily.split(',')]
+                filtered_daily = daily_averages_df[daily_averages_df['Collector Name'].str.contains('|'.join(agents), case=False, na=False)]
+                st.dataframe(filtered_daily, use_container_width=True)
+            else:
+                st.write("Enter agent name(s) to search.")
         else:
             st.warning("No data available for daily agent average calculations or required columns (e.g., 'Collector Name', 'Date') are missing.")
     else:
