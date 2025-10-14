@@ -41,7 +41,7 @@ st.markdown(
              1px 1px 0 #ffffff; /* White stroke effect */
         font-size: 2.5rem; /* Base font size */
     }
-    /* File uploader styling */
+<   /* File uploader styling */
     .stFileUploader {
         background-color: rgba(162, 138, 255, 0.1); /* Light purple tint */
         border: 2px solid #a28aff; /* Solid purple border */
@@ -108,12 +108,35 @@ st.markdown(
     .stDateInput > div > div > input {
         color: #000000 !important;
     }
-    /* Search input styling */
-    div[data-baseweb="input"] input {
+    /* Selectbox styling for dropdown */
+    div[data-baseweb="select"] {
+        background-color: rgba(162, 138, 255, 0.15);
+        border: 1px solid #a28aff;
+        border-radius: 8px;
+    }
+    div[data-baseweb="select"] input {
+        background-color: rgba(162, 138, 255, 0.15) !important;
+        color: #000000 !important;
+    }
+    div[data-baseweb="select"] div[role="listbox"] {
         background-color: rgba(162, 138, 255, 0.15);
         color: #000000;
         border: 1px solid #a28aff;
         border-radius: 8px;
+    }
+    /* Magnifying glass icon for multiselect */
+    div[data-baseweb="select"] > div:first-child::before {
+        content: '🔍';
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        z-index: 1;
+        font-size: 1.2rem;
+    }
+    div[data-baseweb="select"] > div:first-child > div {
+        padding-left: 30px !important; /* Space for icon */
     }
     /* Responsive design for mobile */
     @media (max-width: 600px) {
@@ -173,7 +196,8 @@ def init_session(columns):
     if 'df' not in st.session_state:
         st.session_state.df = pd.DataFrame(columns=expected_columns)
     else:
-        # Get current columns
+        #
+
         current_columns = set(st.session_state.df.columns)
       
         if current_columns != set(expected_columns):
@@ -642,14 +666,14 @@ if st.session_state.get('show_data', False):
         if not raw_df.empty:
             totals_df = calculate_agent_totals(raw_df)
             if not totals_df.empty:
+                all_agents = sorted(totals_df['Collector Name'].unique())
                 st.markdown('<p style="color:white;">Search for Agent (Total)</p>', unsafe_allow_html=True)
-                search_agent_total = st.text_input("", placeholder="Search agents (comma-separated for multiple)", key="search_total")
+                search_agent_total = st.multiselect("", options=all_agents, placeholder="Select one or more agents", key="search_total")
                 if search_agent_total:
-                    agents = [agent.strip() for agent in search_agent_total.split(',')]
-                    filtered_totals = totals_df[totals_df['Collector Name'].str.contains('|'.join(agents), case=False, na=False)]
+                    filtered_totals = totals_df[totals_df['Collector Name'].isin(search_agent_total)]
                     st.dataframe(filtered_totals, use_container_width=True)
                 else:
-                    st.write("Enter agent name(s) to search.")
+                    st.write("Select one or more agents to view details.")
             else:
                 st.warning("No data available for total calculations or required columns are missing.")
         else:
@@ -663,14 +687,14 @@ if st.session_state.get('show_data', False):
     if not raw_df.empty:
         daily_averages_df = calculate_daily_agent_averages(raw_df)
         if not daily_averages_df.empty:
+            all_agents_daily = sorted(daily_averages_df['Collector Name'].unique())
             st.markdown('<p style="color:white;">Search for Agent (Daily Average)</p>', unsafe_allow_html=True)
-            search_agent_daily = st.text_input("", placeholder="Search agents (comma-separated for multiple)", key="search_daily")
+            search_agent_daily = st.multiselect("", options=all_agents_daily, placeholder="Select one or more agents", key="search_daily")
             if search_agent_daily:
-                agents = [agent.strip() for agent in search_agent_daily.split(',')]
-                filtered_daily = daily_averages_df[daily_averages_df['Collector Name'].str.contains('|'.join(agents), case=False, na=False)]
+                filtered_daily = daily_averages_df[daily_averages_df['Collector Name'].isin(search_agent_daily)]
                 st.dataframe(filtered_daily, use_container_width=True)
             else:
-                st.write("Enter agent name(s) to search.")
+                st.write("Select one or more agents to view details.")
         else:
             st.warning("No data available for daily agent average calculations or required columns (e.g., 'Collector Name', 'Date') are missing.")
     else:
@@ -692,7 +716,15 @@ if st.session_state.get('show_data', False):
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             # Write Total per Agent
-            if not totals_df.empty:
+            if 'filtered_totals' in locals() and not filtered_totals.empty:
+                filtered_totals.to_excel(writer, index=False, sheet_name='Total per Agent')
+                worksheet = writer.sheets['Total per Agent']
+                for col_idx in range(1, len(filtered_totals.columns) + 1):
+                    col_letter = get_column_letter(col_idx)
+                    for row in range(1, len(filtered_totals) + 2):
+                        cell = worksheet[f"{col_letter}{row}"]
+                        cell.alignment = Alignment(horizontal='left')
+            elif not totals_df.empty:
                 totals_df.to_excel(writer, index=False, sheet_name='Total per Agent')
                 worksheet = writer.sheets['Total per Agent']
                 for col_idx in range(1, len(totals_df.columns) + 1):
@@ -702,7 +734,15 @@ if st.session_state.get('show_data', False):
                         cell.alignment = Alignment(horizontal='left')
             
             # Write Average Daily per Agent
-            if not daily_averages_df.empty:
+            if 'filtered_daily' in locals() and not filtered_daily.empty:
+                filtered_daily.to_excel(writer, index=False, sheet_name='Average Daily per Agent')
+                worksheet = writer.sheets['Average Daily per Agent']
+                for col_idx in range(1, len(filtered_daily.columns) + 1):
+                    col_letter = get_column_letter(col_idx)
+                    for row in range(1, len(filtered_daily) + 2):
+                        cell = worksheet[f"{col_letter}{row}"]
+                        cell.alignment = Alignment(horizontal='left')
+            elif not daily_averages_df.empty:
                 daily_averages_df.to_excel(writer, index=False, sheet_name='Average Daily per Agent')
                 worksheet = writer.sheets['Average Daily per Agent']
                 for col_idx in range(1, len(daily_averages_df.columns) + 1):
