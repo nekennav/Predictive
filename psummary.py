@@ -609,8 +609,9 @@ if uploaded_file is not None:
 
 # Date range filter section
 st.header("Filter Data by Date Range")
-# Determine default start date from the earliest date in the session DataFrame
+# Determine default start and end dates from the session DataFrame
 default_start_date = datetime.today().date()
+default_end_date = datetime.today().date()
 if 'df' in st.session_state and not st.session_state.df.empty and 'Date' in st.session_state.df.columns:
     try:
         # Filter out invalid or empty dates and convert to datetime
@@ -618,13 +619,15 @@ if 'df' in st.session_state and not st.session_state.df.empty and 'Date' in st.s
         valid_dates = valid_dates.dropna()
         if not valid_dates.empty:
             default_start_date = valid_dates.min().date()
+            default_end_date = valid_dates.max().date()
     except Exception as e:
-        st.warning(f"Error determining earliest date: {str(e)}. Using today's date as default.")
+        st.warning(f"Error determining date range: {str(e)}. Using today's date as default.")
+
 col1, col2 = st.columns(2)
 with col1:
     start_date = st.date_input("Start Date", value=default_start_date)
 with col2:
-    end_date = st.date_input("End Date", value=date(datetime.today().year, 12, 31))
+    end_date = st.date_input("End Date", value=default_end_date)
 
 # Show All button
 if st.button("Show All"):
@@ -640,7 +643,7 @@ if st.session_state.get('show_data', False):
             totals_df = calculate_agent_totals(raw_df)
             if not totals_df.empty:
                 st.markdown('<p style="color:white;">Search for Agent (Total)</p>', unsafe_allow_html=True)
-                search_agent_total = st.text_input("", placeholder="🔍 Search agents (comma-separated for multiple)", key="search_total")
+                search_agent_total = st.text_input("", placeholder="Search agents (comma-separated for multiple)", key="search_total")
                 if search_agent_total:
                     agents = [agent.strip() for agent in search_agent_total.split(',')]
                     filtered_totals = totals_df[totals_df['Collector Name'].str.contains('|'.join(agents), case=False, na=False)]
@@ -661,7 +664,7 @@ if st.session_state.get('show_data', False):
         daily_averages_df = calculate_daily_agent_averages(raw_df)
         if not daily_averages_df.empty:
             st.markdown('<p style="color:white;">Search for Agent (Daily Average)</p>', unsafe_allow_html=True)
-            search_agent_daily = st.text_input("", placeholder="🔍 Search agents (comma-separated for multiple)", key="search_daily")
+            search_agent_daily = st.text_input("", placeholder="Search agents (comma-separated for multiple)", key="search_daily")
             if search_agent_daily:
                 agents = [agent.strip() for agent in search_agent_daily.split(',')]
                 filtered_daily = daily_averages_df[daily_averages_df['Collector Name'].str.contains('|'.join(agents), case=False, na=False)]
