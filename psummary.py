@@ -20,7 +20,7 @@ st.markdown(
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
-        background-color: rgba(26, 26, 46, 0.9);, 0.9); /* Dark purple-blue semi-transparent fallback */
+        background-color: rgba(26, 26, 46, 0.9); /* Dark purple-blue semi-transparent fallback */
         color: #e0e0e0; /* Light gray for text readability */
         animation: panningBackground 20s linear infinite;
     }
@@ -356,13 +356,14 @@ def seconds_to_time(seconds):
     secs = int(float(seconds) % 60)
     return f"{hours}:{minutes:02d}:{secs:02d}"
 
-# Helper function to convert seconds to MM:SS for averages
+# Helper function to convert seconds to H:MM:SS for averages
 def seconds_to_avg_time(seconds):
     if pd.isna(seconds) or seconds == 0 or not isinstance(seconds, (int, float)) or seconds == float('inf'):
-        return '00:00'
-    minutes = int(float(seconds) // 60)
+        return '0:00:00'
+    hours = int(float(seconds) // 3600)
+    minutes = int((float(seconds) % 3600) // 60)
     secs = int(float(seconds) % 60)
-    return f"{minutes:02d}:{secs:02d}"
+    return f"{hours}:{minutes:02d}:{secs:02d}"
 
 # Calculate totals and averages by agent and campaign
 def calculate_agent_totals(df):
@@ -387,7 +388,7 @@ def calculate_agent_totals(df):
         df = df.copy()
       
         if 'Total Calls' in available_metrics:
-            df['Total Calls'] = pd.to_numeric(df['Total Calls'], errors='coerce').fillna(0.0)
+            df['Total Calls'] = pd.to_numeric(df['Total Calls'], errors='coerce').fillna(0.0).round().astype(int)
       
         time_metrics = [col for col in available_metrics if col != 'Total Calls']
         for col in time_metrics:
@@ -451,7 +452,7 @@ def calculate_daily_agent_averages(df):
         df = df.copy()
       
         if 'Total Calls' in available_metrics:
-            df['Total Calls'] = pd.to_numeric(df['Total Calls'], errors='coerce').fillna(0.0)
+            df['Total Calls'] = pd.to_numeric(df['Total Calls'], errors='coerce').fillna(0.0).round().astype(int)
       
         time_metrics = [col for col in available_metrics if col != 'Total Calls']
         for col in time_metrics:
@@ -462,6 +463,10 @@ def calculate_daily_agent_averages(df):
       
         mean_cols = ['Total Calls'] + [f'{col}_seconds' for col in time_metrics]
         averages_df = daily_averages.groupby(group_cols)[mean_cols].mean().reset_index()
+      
+        # Round Total Calls to integer
+        if 'Total Calls' in averages_df.columns:
+            averages_df['Total Calls'] = averages_df['Total Calls'].round().astype(int)
       
         for col in time_metrics:
             averages_df[col] = averages_df[f'{col}_seconds'].apply(seconds_to_time)
@@ -514,7 +519,7 @@ def calculate_campaign_averages(df):
             return pd.DataFrame()
       
         if 'Total Calls' in available_metrics:
-            df['Total Calls'] = pd.to_numeric(df['Total Calls'], errors='coerce').fillna(0.0)
+            df['Total Calls'] = pd.to_numeric(df['Total Calls'], errors='coerce').fillna(0.0).round().astype(int)
       
         time_metrics = [col for col in available_metrics if col != 'Total Calls']
         for col in time_metrics:
@@ -522,6 +527,10 @@ def calculate_campaign_averages(df):
       
         mean_cols = ['Total Calls'] + [f'{col}_seconds' for col in time_metrics]
         averages_df = df.groupby('Campaign')[mean_cols].mean().reset_index()
+      
+        # Round Total Calls to integer
+        if 'Total Calls' in averages_df.columns:
+            averages_df['Total Calls'] = averages_df['Total Calls'].round().astype(int)
       
         for col in time_metrics:
             averages_df[col] = averages_df[f'{col}_seconds'].apply(seconds_to_time)
@@ -615,7 +624,7 @@ if st.session_state.get('show_data', False):
         else:
             st.warning("No data found for the selected date range.")
     else:
-        st.error(" побач Start date must be before or equal to end date.")
+        st.error("Start date must be before or equal to end date.")
         raw_df = pd.DataFrame()
     
     # AVERAGE DAILY PER AGENT section
