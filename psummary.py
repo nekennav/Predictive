@@ -329,15 +329,6 @@ def seconds_to_time(seconds):
     secs = int(float(seconds) % 60)
     return f"{hours}:{minutes:02d}:{secs:02d}"
 
-# Helper function to convert seconds to H:MM:SS for averages
-def seconds_to_avg_time(seconds):
-    if pd.isna(seconds) or seconds == 0 or not isinstance(seconds, (int, float)) or seconds == float('inf'):
-        return '0:00:00'
-    hours = int(float(seconds) // 3600)
-    minutes = int((float(seconds) % 3600) // 60)
-    secs = int(float(seconds) % 60)
-    return f"{hours}:{minutes:02d}:{secs:02d}"
-
 # Calculate totals and averages by agent and campaign
 def calculate_agent_totals(df):
     try:
@@ -352,11 +343,7 @@ def calculate_agent_totals(df):
             st.warning(f"Required columns missing: {', '.join(missing_cols)}. Cannot calculate totals.")
             return pd.DataFrame()
       
-        if 'Campaign' not in df.columns:
-            st.warning("No 'Campaign' column found in data. Totals will be grouped by Collector Name only.")
-            group_cols = ['Collector Name']
-        else:
-            group_cols = ['Collector Name', 'Campaign']
+        group_cols = ['Collector Name', 'Campaign'] if 'Campaign' in df.columns else ['Collector Name']
       
         df = df.copy()
       
@@ -378,17 +365,10 @@ def calculate_agent_totals(df):
             for col in ['Talk Time', 'Wait Time', 'Write Time']:
                 if col in time_metrics:
                     totals_df[f'AVG {col}'] = totals_df.apply(
-                        lambda row: seconds_to_avg_time(
-                            time_to_seconds(row[col]) / row['Total Calls']
-                            if row['Total Calls'] > 0 else 0.0
-                        ), axis=1
+                        lambda row: seconds_to_time(time_to_seconds(row[col]) / row['Total Calls'] if row['Total Calls'] > 0 else 0), axis=1
                     )
       
-        display_columns = ['Collector Name']
-        if 'Campaign' in df.columns:
-            display_columns.append('Campaign')
-        if 'Total Calls' in available_metrics:
-            display_columns.append('Total Calls')
+        display_columns = group_cols + ['Total Calls'] if 'Total Calls' in available_metrics else group_cols
         for col in ['Spent Time', 'Talk Time', 'Wait Time', 'Write Time', 'Pause Time']:
             if col in available_metrics:
                 display_columns.append(col)
@@ -410,17 +390,10 @@ def calculate_daily_agent_averages(df):
         available_metrics = [col for col in metric_columns if col in df.columns]
       
         if 'Collector Name' not in df.columns or 'Date' not in df.columns or not available_metrics:
-            missing_cols = [col for col in ['Collector Name', 'Date'] + metric_columns if col not in df.columns]
-            st.warning(f"Required columns missing: {', '.join(missing_cols)}. Cannot calculate daily averages.")
             return pd.DataFrame()
       
-        if 'Campaign' not in df.columns:
-            st.warning("No 'Campaign' column found in data. Averages will be grouped by Collector Name only.")
-            group_cols = ['Collector Name']
-            daily_group_cols = ['Collector Name', 'Date']
-        else:
-            group_cols = ['Collector Name', 'Campaign']
-            daily_group_cols = ['Collector Name', 'Date', 'Campaign']
+        group_cols = ['Collector Name', 'Campaign'] if 'Campaign' in df.columns else ['Collector Name']
+        daily_group_cols = group_cols + ['Date']
       
         df = df.copy()
       
@@ -448,17 +421,10 @@ def calculate_daily_agent_averages(df):
             for col in ['Talk Time', 'Wait Time', 'Write Time']:
                 if col in time_metrics:
                     averages_df[f'AVG {col}'] = averages_df.apply(
-                        lambda row: seconds_to_avg_time(
-                            time_to_seconds(row[col]) / row['Total Calls']
-                            if row['Total Calls'] > 0 else 0.0
-                        ), axis=1
+                        lambda row: seconds_to_time(time_to_seconds(row[col]) / row['Total Calls'] if row['Total Calls'] > 0 else 0), axis=1
                     )
       
-        display_columns = ['Collector Name']
-        if 'Campaign' in df.columns:
-            display_columns.append('Campaign')
-        if 'Total Calls' in available_metrics:
-            display_columns.append('Total Calls')
+        display_columns = group_cols + ['Total Calls'] if 'Total Calls' in available_metrics else group_cols
         for col in ['Spent Time', 'Talk Time', 'Wait Time', 'Write Time', 'Pause Time']:
             if col in available_metrics:
                 display_columns.append(col)
@@ -480,14 +446,11 @@ def calculate_campaign_averages(df):
         available_metrics = [col for col in metric_columns if col in df.columns]
       
         if 'Campaign' not in df.columns or not available_metrics:
-            missing_cols = [col for col in ['Campaign'] + metric_columns if col not in df.columns]
-            st.warning(f"Required columns missing for campaign averages: {', '.join(missing_cols)}. Please ensure uploaded files include a 'Campaign' column with values like 'SBC CURING B2', 'SBC RECOVERY', etc.")
             return pd.DataFrame()
       
         df = df.copy()
       
         if df['Campaign'].isna().all() or (df['Campaign'] == '').all():
-            st.warning("All 'Campaign' values are empty or null. Please ensure the 'Campaign' column contains valid values like 'SBC CURING B2', 'SBC RECOVERY', etc.")
             return pd.DataFrame()
       
         if 'Total Calls' in available_metrics:
@@ -511,10 +474,7 @@ def calculate_campaign_averages(df):
             for col in ['Talk Time', 'Wait Time', 'Write Time']:
                 if col in time_metrics:
                     averages_df[f'AVG {col}'] = averages_df.apply(
-                        lambda row: seconds_to_avg_time(
-                            time_to_seconds(row[col]) / row['Total Calls']
-                            if row['Total Calls'] > 0 else 0.0
-                        ), axis=1
+                        lambda row: seconds_to_time(time_to_seconds(row[col]) / row['Total Calls'] if row['Total Calls'] > 0 else 0), axis=1
                     )
       
         if 'Collector Name' in df.columns and 'Date' in df.columns:
@@ -533,7 +493,7 @@ def calculate_campaign_averages(df):
                 display_columns.append(col)
             if col in ['Talk Time', 'Wait Time', 'Write Time'] and col in available_metrics:
                 display_columns.append(f'AVG {col}')
-        if 'Collector Name' in df.columns and 'Date' in df.columns:
+        if 'Average Number of Agents' in averages_df.columns:
             display_columns.append('Average Number of Agents')
       
         return averages_df[display_columns]
@@ -546,64 +506,37 @@ def calculate_top_agents_lowest_spent_time_per_campaign(df):
     try:
         required_columns = ['Campaign', 'Collector Name', 'Spent Time']
         if not all(col in df.columns for col in required_columns):
-            missing_cols = [col for col in required_columns if col not in df.columns]
-            st.warning(f"Required columns missing for top agents calculation: {', '.join(missing_cols)}. Cannot calculate agents with lowest average spent time per campaign.")
             return pd.DataFrame(), pd.DataFrame()
       
         df = df.copy()
-      
-        if df['Campaign'].isna().all() or (df['Campaign'] == '').all():
-            st.warning("All 'Campaign' values are empty or null. Please ensure the 'Campaign' column contains valid values like 'SBC CURING B2', 'SBC RECOVERY', etc.")
-            return pd.DataFrame(), pd.DataFrame()
-      
         df['Spent Time_seconds'] = df['Spent Time'].apply(time_to_seconds).fillna(0.0)
-      
         agent_spent_time = df.groupby(['Campaign', 'Collector Name'])['Spent Time_seconds'].mean().reset_index()
         agent_spent_time = agent_spent_time[agent_spent_time['Spent Time_seconds'] > 0]
-      
+
+        if agent_spent_time.empty:
+            return pd.DataFrame(columns=['Agent', 'Average Spent Time']), pd.DataFrame()
+
         top_agents = (
             agent_spent_time.groupby('Campaign')
-            .apply(lambda x: x.nsmallest(5, 'Spent Time_seconds')[['Collector Name', 'Spent Time_seconds']])
-            .reset_index()
+            .apply(lambda x: x.nsmallest(5, 'Spent Time_seconds'))
+            .reset_index(drop=True)
         )
-      
+
+        # For display
         display_rows = []
-        excel_data = []
         for campaign in sorted(top_agents['Campaign'].unique()):
-            campaign_agents = top_agents[top_agents['Campaign'] == campaign][['Collector Name', 'Spent Time_seconds']].head(5)
-            if not campaign_agents.empty:
-                display_rows.append([campaign, ''])
-                excel_data.append({'Campaign': campaign, 'Agent': '', 'Average Spent Time': ''})
-                for _, row in campaign_agents.iterrows():
-                    display_rows.append([row['Collector Name'], seconds_to_time(row['Spent Time_seconds'])])
-                    excel_data.append({
-                        'Campaign': '',
-                        'Agent': row['Collector Name'],
-                        'Average Spent Time': seconds_to_time(row['Spent Time_seconds'])
-                    })
-                display_rows.append(['', ''])  # Empty row for display separation
-                excel_data.append({'Campaign': '', 'Agent': '', 'Average Spent Time': ''})  # Empty row after agents
-            else:
-                display_rows.append([campaign, ''])
-                excel_data.append({'Campaign': campaign, 'Agent': '', 'Average Spent Time': ''})
-                display_rows.append(['No agents with non-zero spent time', ''])
-                excel_data.append({
-                    'Campaign': '',
-                    'Agent': 'No agents with non-zero spent time',
-                    'Average Spent Time': ''
-                })
-                display_rows.append(['', ''])
-                excel_data.append({'Campaign': '', 'Agent': '', 'Average Spent Time': ''})
-      
+            if pd.isna(campaign) or not campaign.strip():
+                continue
+            display_rows.append([campaign, ''])
+            campaign_agents = top_agents[top_agents['Campaign'] == campaign].head(5)
+            for _, row in campaign_agents.iterrows():
+                display_rows.append([row['Collector Name'], seconds_to_time(row['Spent Time_seconds'])])
+            display_rows.append(['', ''])
         top_agents_df = pd.DataFrame(display_rows, columns=['Agent', 'Average Spent Time'])
-        if top_agents_df.empty:
-            top_agents_df = pd.DataFrame({'Agent': ['No data available'], 'Average Spent Time': ['']})
-      
-        top_agents_excel = pd.DataFrame(excel_data)
-      
-        return top_agents_df, top_agents_excel
+
+        return top_agents_df, top_agents
     except Exception as e:
-        st.error(f"Error calculating agents with lowest average spent time per campaign: {str(e)}")
+        st.error(f"Error calculating top agents: {str(e)}")
         return pd.DataFrame(), pd.DataFrame()
 
 # Streamlit app
@@ -665,8 +598,8 @@ if st.session_state.get('show_data', False):
                 else:
                     st.write("Select one or more agents to view details.")
             else:
-                st.warning("No data available for total calculations or required columns are missing.")
-            
+                st.warning("No data available for total calculations.")
+
             # AVERAGE DAILY PER AGENT section
             st.header("AVERAGE DAILY PER AGENT")
             daily_averages_df = calculate_daily_agent_averages(raw_df)
@@ -680,98 +613,67 @@ if st.session_state.get('show_data', False):
                 else:
                     st.write("Select one or more agents to view details.")
             else:
-                st.warning("No data available for daily agent average calculations or required columns (e.g., 'Collector Name', 'Date') are missing.")
-            
+                st.warning("No data available for daily averages.")
+
             # AGENTS WITH LOWEST AVERAGE SPENT TIME PER CAMPAIGN section
             st.header("AGENTS WITH LOWEST AVERAGE SPENT TIME PER CAMPAIGN")
             top_agents_df, top_agents_excel = calculate_top_agents_lowest_spent_time_per_campaign(raw_df)
             if not top_agents_df.empty:
                 st.dataframe(top_agents_df, use_container_width=True)
             else:
-                st.warning("No data available for agents with lowest average spent time per campaign or required columns (e.g., 'Campaign', 'Collector Name', 'Spent Time') are missing.")
-            
+                st.warning("No data available for top agents.")
+
             # AVERAGE PER CAMPAIGN section
             st.header("AVERAGE PER CAMPAIGN")
             campaign_averages_df = calculate_campaign_averages(raw_df)
             if not campaign_averages_df.empty:
                 st.dataframe(campaign_averages_df, use_container_width=True)
             else:
-                st.warning("No data available for campaign average calculations or required columns are missing. Please ensure uploaded files include a 'Campaign' column with valid values like 'SBC CURING B2', 'SBC RECOVERY', etc.")
-            
-            # Download button for Excel
+                st.warning("No data available for campaign averages.")
+
+            # DOWNLOAD EXCEL
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                if 'filtered_totals' in locals() and not filtered_totals.empty:
-                    filtered_totals.to_excel(writer, index=False, sheet_name='Total per Agent')
-                    worksheet = writer.sheets['Total per Agent']
-                    for col_idx in range(1, len(filtered_totals.columns) + 1):
-                        col_letter = get_column_letter(col_idx)
-                        for row in range(1, len(filtered_totals) + 2):
-                            cell = worksheet[f"{col_letter}{row}"]
-                            cell.alignment = Alignment(horizontal='left')
-                elif not totals_df.empty:
-                    totals_df.to_excel(writer, index=False, sheet_name='Total per Agent')
-                    worksheet = writer.sheets['Total per Agent']
-                    for col_idx in range(1, len(totals_df.columns) + 1):
-                        col_letter = get_column_letter(col_idx)
-                        for row in range(1, len(totals_df) + 2):
-                            cell = worksheet[f"{col_letter}{row}"]
-                            cell.alignment = Alignment(horizontal='left')
-                
-                if 'filtered_daily' in locals() and not filtered_daily.empty:
-                    filtered_daily.to_excel(writer, index=False, sheet_name='Average Daily per Agent')
-                    worksheet = writer.sheets['Average Daily per Agent']
-                    for col_idx in range(1, len(filtered_daily.columns) + 1):
-                        col_letter = get_column_letter(col_idx)
-                        for row in range(1, len(filtered_daily) + 2):
-                            cell = worksheet[f"{col_letter}{row}"]
-                            cell.alignment = Alignment(horizontal='left')
-                elif not daily_averages_df.empty:
-                    daily_averages_df.to_excel(writer, index=False, sheet_name='Average Daily per Agent')
-                    worksheet = writer.sheets['Average Daily per Agent']
-                    for col_idx in range(1, len(daily_averages_df.columns) + 1):
-                        col_letter = get_column_letter(col_idx)
-                        for row in range(1, len(daily_averages_df) + 2):
-                            cell = worksheet[f"{col_letter}{row}"]
-                            cell.alignment = Alignment(horizontal='left')
-                
-                if not top_agents_excel.empty:
-                    top_agents_excel.to_excel(writer, index=False, sheet_name='Agents with Lowest Avg Spent Time')
-                    worksheet = writer.sheets['Agents with Lowest Avg Spent Time']
-                    row_idx = 1
-                    raw_df['Spent Time_seconds'] = raw_df['Spent Time'].apply(time_to_seconds).fillna(0.0)
-                    agent_spent_time = raw_df.groupby(['Campaign', 'Collector Name'])['Spent Time_seconds'].mean().reset_index()
-                    agent_spent_time = agent_spent_time[agent_spent_time['Spent Time_seconds'] > 0]
-                    top_agents = (
-                        agent_spent_time.groupby('Campaign')
-                        .apply(lambda x: x.nsmallest(5, 'Spent Time_seconds')[['Collector Name', 'Spent Time_seconds']])
-                        .reset_index()
-                    )
-                    for campaign in sorted(top_agents['Campaign'].unique()):
-                        if campaign:
-                            worksheet.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=2)
-                            cell = worksheet[f'A{row_idx}']
-                            cell.value = campaign
-                            cell.alignment = Alignment(horizontal='left')
-                            cell.font = Font(bold=True)
-                            row_idx += 1
-                            campaign_agents = top_agents[top_agents['Campaign'] == campaign][['Collector Name', 'Spent Time_seconds']].head(5)
-                            for _, row in campaign_agents.iterrows():
-                                worksheet[f'A{row_idx}'].value = row['Collector Name']
-                                worksheet[f'B{row_idx}'].value = seconds_to_time(row['Spent Time_seconds'])
-                                worksheet[f'A{row_idx}'].alignment = Alignment(horizontal='left')
-                                worksheet[f'B{row_idx}'].alignment = Alignment(horizontal='left')
-                                row_idx += 1
-                            row_idx += 1
+                # Total per Agent
+                df_to_save = filtered_totals if 'filtered_totals' in locals() and not filtered_totals.empty else totals_df
+                if not df_to_save.empty:
+                    df_to_save.to_excel(writer, index=False, sheet_name='Total per Agent')
+
+                # Daily Average
+                df_daily = filtered_daily if 'filtered_daily' in locals() and not filtered_daily.empty else daily_averages_df
+                if not df_daily.empty:
+                    df_daily.to_excel(writer, index=False, sheet_name='Average Daily per Agent')
+
+                # Campaign Average
                 if not campaign_averages_df.empty:
                     campaign_averages_df.to_excel(writer, index=False, sheet_name='Average per Campaign')
-                    worksheet = writer.sheets['Average per Campaign']
-                    for col_idx in range(1, len(campaign_averages_df.columns) + 1):
-                        col_letter = get_column_letter(col_idx)
-                        for row in range(1, len(campaign_averages_df) + 2):
-                            cell = worksheet[f"{col_letter}{row}"]
-                            cell.alignment = Alignment(horizontal='left')
-            
+
+                # Top Agents: Custom Format
+                if not top_agents_excel.empty:
+                    sheet_name = 'Top Agents Lowest Spent Time'
+                    workbook = writer.book
+                    worksheet = workbook.create_sheet(title=sheet_name)
+                    row_idx = 1
+                    for campaign in sorted(top_agents_excel['Campaign'].dropna().unique()):
+                        worksheet.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=2)
+                        cell = worksheet.cell(row=row_idx, column=1)
+                        cell.value = campaign
+                        cell.font = Font(bold=True)
+                        cell.alignment = Alignment(horizontal='left')
+                        row_idx += 1
+
+                        agents = top_agents_excel[top_agents_excel['Campaign'] == campaign].head(5)
+                        for _, row in agents.iterrows():
+                            worksheet.cell(row=row_idx, column=1).value = row['Collector Name']
+                            worksheet.cell(row=row_idx, column=2).value = seconds_to_time(row['Spent Time_seconds'])
+                            worksheet.cell(row=row_idx, column=1).alignment = Alignment(horizontal='left')
+                            worksheet.cell(row=row_idx, column=2).alignment = Alignment(horizontal='left')
+                            row_idx += 1
+                        row_idx += 1
+
+                    worksheet.column_dimensions['A'].width = 35
+                    worksheet.column_dimensions['B'].width = 15
+
             output.seek(0)
             st.download_button(
                 label="Download data as Excel",
