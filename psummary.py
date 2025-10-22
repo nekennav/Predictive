@@ -10,26 +10,26 @@ from openpyxl.styles import Alignment, Font
 # Set page configuration
 st.set_page_config(page_title="Neeiil", page_icon="💎", layout="wide")
 
-# Custom CSS for aesthetic computer-themed styling
+# Custom CSS for aesthetic computer-themed styling with NEW SPACE BACKGROUND
 st.markdown(
     """
     <style>
-    /* Main app background with aesthetic computer wallpaper */
+    /* Main app background with space planet wallpaper */
     .stApp {
-        background-image: url('https://wallpaperbat.com/img/881836-aesthetic-computer-4k-wallpaper.jpg');
+        background-image: url('https://images.wallpaperscraft.com/image/single/planet_space_universe_127497_2560x1440.jpg');
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
-        background-color: rgba(26, 26, 46, 0.9); /* Dark purple-blue semi-transparent fallback */
+        background-color: rgba(10, 15, 30, 0.95); /* Dark space fallback */
         color: #e0e0e0; /* Light gray for text readability */
-        animation: panningBackground 20s linear infinite;
+        animation: panningBackground 30s linear infinite;
     }
     @keyframes panningBackground {
         0% { background-position: 50% 0%; }
         50% { background-position: 50% 100%; }
         100% { background-position: 50% 0%; }
     }
-    /* Title styling with abstract-inspired colors and white stroke */
+    /* Title styling with cosmic glow */
     h1 {
         color: #a6b1e1; /* Light purple for PREDICTIVE SUMMARY */
         font-family: 'Arial', sans-serif;
@@ -38,60 +38,58 @@ st.markdown(
             -1px -1px 0 #ffffff,
              1px -1px 0 #ffffff,
             -1px 1px 0 #ffffff,
-             1px 1px 0 #ffffff; /* White stroke effect */
-        font-size: 2.5rem; /* Base font size */
+             1px 1px 0 #ffffff,
+            0 0 10px rgba(166, 177, 225, 0.8); /* Soft glow */
+        font-size: 2.5rem;
     }
     /* Header styling */
     h2 {
-        color: #dcd6ff; /* Light purple */
+        color: #dcd6ff;
         font-size: 1.5rem;
     }
     /* File uploader styling */
     .stFileUploader {
-        background-color: rgba(162, 138, 255, 0.1); /* Light purple tint */
-        border: 2px solid #a28aff; /* Solid purple border */
+        background-color: rgba(162, 138, 255, 0.1);
+        border: 2px solid #a28aff;
         border-radius: 10px;
         padding: 10px;
-        margin-top: 20px; /* Slightly lower positioning */
+        margin-top: 20px;
     }
-    /* File uploader label styling */
     .stFileUploader label {
-        color: #e0e0e0; /* Light gray for file uploader label */
-        font-size: 1.1rem; /* Base font size */
+        color: #e0e0e0;
+        font-size: 1.1rem;
     }
-    /* File uploader button text ("Browse files") */
     .stFileUploader input[type="file"]::file-selector-button {
-        color: #000000; /* Black color for "Browse files" text */
-        font-size: 1rem; /* Match button font size */
+        color: #000000;
+        font-size: 1rem;
     }
     /* Button styling */
     .stButton > button {
-        background-color: #a28aff; /* Vibrant purple */
-        color: #e0e0e0; /* Light gray text */
+        background-color: #a28aff;
+        color: #e0e0e0;
         border-radius: 8px;
         padding: 10px 20px;
         font-weight: bold;
         transition: background-color 0.3s;
-        border: 1px solid #dcd6ff; /* Light purple border */
-        font-size: 1rem; /* Base font size */
+        border: 1px solid #dcd6ff;
+        font-size: 1rem;
     }
     .stButton > button:hover {
-        background-color: #8b74e6; /* Darker purple on hover */
-        border-color: #a28aff; /* Purple on hover */
+        background-color: #8b74e6;
+        border-color: #a28aff;
     }
-    /* Download button text ("Download data as Excel") */
     .stDownloadButton > button {
-        color: #000000; /* Black color for download button text */
+        color: #000000;
     }
     /* Text area and dataframe styling */
     .stTextArea textarea, .stDataFrame {
-        background-color: rgba(162, 138, 255, 0.15); /* Subtle purple tint */
-        color: #e0e0e0; /* Light gray text */
-        border: 1px solid #a28aff; /* Solid purple border */
+        background-color: rgba(162, 138, 255, 0.15);
+        color: #e0e0e0;
+        border: 1px solid #a28aff;
         border-radius: 8px;
         padding: 10px;
         margin: 0;
-        font-size: 0.9rem; /* Base font size */
+        font-size: 0.9rem;
         font-family: 'Arial', sans-serif;
     }
     /* Bold campaign names in top agents dataframe */
@@ -100,27 +98,26 @@ st.markdown(
     }
     /* Alert styling */
     .stAlert {
-        background-color: rgba(220, 214, 255, 0.2); /* Light purple tint */
-        color: #e0e0e0; /* Light gray text */
+        background-color: rgba(220, 214, 255, 0.2);
+        color: #e0e0e0;
         border-radius: 8px;
-        font-size: 0.9rem; /* Base font size */
+        font-size: 0.9rem;
     }
     /* Table text */
     .stText, table {
-        color: #e0e0e0; /* Light gray for table text */
+        color: #e0e0e0;
         font-family: 'Arial', sans-serif;
-        font-size: 0.9rem; /* Base font size */
+        font-size: 0.9rem;
     }
     /* Date input label styling */
     .stDateInput label {
-        color: #ffffff; /* White color for date input labels */
-        font-size: 1.1rem; /* Match file uploader label size */
+        color: #ffffff;
+        font-size: 1.1rem;
     }
-    /* Date input text color */
     .stDateInput > div > div > input {
         color: #000000 !important;
     }
-    /* Selectbox styling for dropdown */
+    /* Selectbox styling */
     div[data-baseweb="select"] {
         background-color: rgba(162, 138, 255, 0.15);
         border: 1px solid #a28aff;
@@ -136,7 +133,7 @@ st.markdown(
         border: 1px solid #a28aff;
         border-radius: 8px;
     }
-    /* Magnifying glass icon for multiselect */
+    /* Magnifying glass icon */
     div[data-baseweb="select"] > div:first-child::before {
         content: '🔍';
         position: absolute;
@@ -148,35 +145,18 @@ st.markdown(
         font-size: 1.2rem;
     }
     div[data-baseweb="select"] > div:first-child > div {
-        padding-left: 30px !important; /* Space for icon */
+        padding-left: 30px !important;
     }
-    /* Responsive design for mobile */
+    /* Responsive design */
     @media (max-width: 600px) {
-        h1 {
-            font-size: 1.8rem; /* Smaller title on mobile */
-        }
-        .stFileUploader {
-            margin-top: 10px; /* Slightly less margin on mobile */
-        }
-        .stFileUploader label {
-            font-size: 0.9rem; /* Smaller label on mobile */
-        }
-        .stButton > button {
-            padding: 8px 16px;
-            font-size: 0.85rem; /* Smaller button text */
-        }
-        .stTextArea textarea, .stDataFrame, .stAlert, .stText, table {
-            font-size: 0.8rem; /* Smaller text on mobile */
-        }
-        .stDateInput label {
-            font-size: 0.9rem; /* Smaller date input label on mobile */
-        }
-        .stFileUploader input[type="file"]::file-selector-button {
-            font-size: 0.85rem; /* Smaller file upload button text on mobile */
-        }
-        .stDownloadButton > button {
-            font-size: 0.85rem; /* Smaller download button text on mobile */
-        }
+        h1 { font-size: 1.8rem; }
+        .stFileUploader { margin-top: 10px; }
+        .stFileUploader label { font-size: 0.9rem; }
+        .stButton > button { padding: 8px 16px; font-size: 0.85rem; }
+        .stTextArea textarea, .stDataFrame, .stAlert, .stText, table { font-size: 0.8rem; }
+        .stDateInput label { font-size: 0.9rem; }
+        .stFileUploader input[type="file"]::file-selector-button { font-size: 0.85rem; }
+        .stDownloadButton > button { font-size: 0.85rem; }
     }
     </style>
     """,
@@ -759,7 +739,6 @@ if st.session_state.get('show_data', False):
                     top_agents_excel.to_excel(writer, index=False, sheet_name='Agents with Lowest Avg Spent Time')
                     worksheet = writer.sheets['Agents with Lowest Avg Spent Time']
                     row_idx = 1
-                    # Recompute top_agents for Excel to ensure correct agent filtering
                     raw_df['Spent Time_seconds'] = raw_df['Spent Time'].apply(time_to_seconds).fillna(0.0)
                     agent_spent_time = raw_df.groupby(['Campaign', 'Collector Name'])['Spent Time_seconds'].mean().reset_index()
                     agent_spent_time = agent_spent_time[agent_spent_time['Spent Time_seconds'] > 0]
@@ -783,7 +762,7 @@ if st.session_state.get('show_data', False):
                                 worksheet[f'A{row_idx}'].alignment = Alignment(horizontal='left')
                                 worksheet[f'B{row_idx}'].alignment = Alignment(horizontal='left')
                                 row_idx += 1
-                            row_idx += 1  # Empty row after agents
+                            row_idx += 1
                 if not campaign_averages_df.empty:
                     campaign_averages_df.to_excel(writer, index=False, sheet_name='Average per Campaign')
                     worksheet = writer.sheets['Average per Campaign']
