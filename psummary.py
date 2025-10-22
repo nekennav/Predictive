@@ -218,10 +218,11 @@ def save_file_to_session(uploaded_file):
         if not all(col in df.columns for col in required_cols):
             raise ValueError(f"File must contain required columns: {', '.join(required_cols)}. Note: 'CAMPAIGN' should be renamed to 'Campaign'.")
       
-        valid_campaigns = {'SBC CURING B2', 'SBC CURING B4', 'SBC RECOVERY', 'SBF RECOVERY'}
-        if not df['Campaign'].isin(valid_campaigns | {''}).all():
-            invalid_campaigns = df['Campaign'][~df['Campaign'].isin(valid_campaigns | {''})].unique()
-            st.warning(f"Invalid campaign names found: {', '.join(invalid_campaigns)}. Expected: {', '.join(valid_campaigns)}")
+        # REMOVED CAMPAIGN VALIDATION AND WARNING
+        # valid_campaigns = {'SBC CURING B2', 'SBC CURING B4', 'SBC RECOVERY', 'SBF RECOVERY'}
+        # if not df['Campaign'].isin(valid_campaigns | {''}).all():
+        #     invalid_campaigns = df['Campaign'][~df['Campaign'].isin(valid_campaigns | {''})].unique()
+        #     st.warning(f"Invalid campaign names found: {', '.join(invalid_campaigns)}. Expected: {', '.join(valid_campaigns)}")
       
         if 'Date' in df.columns:
             def normalize_date(x):
