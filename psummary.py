@@ -218,12 +218,6 @@ def save_file_to_session(uploaded_file):
         if not all(col in df.columns for col in required_cols):
             raise ValueError(f"File must contain required columns: {', '.join(required_cols)}. Note: 'CAMPAIGN' should be renamed to 'Campaign'.")
       
-        # REMOVED CAMPAIGN VALIDATION AND WARNING
-        # valid_campaigns = {'SBC CURING B2', 'SBC CURING B4', 'SBC RECOVERY', 'SBF RECOVERY'}
-        # if not df['Campaign'].isin(valid_campaigns | {''}).all():
-        #     invalid_campaigns = df['Campaign'][~df['Campaign'].isin(valid_campaigns | {''})].unique()
-        #     st.warning(f"Invalid campaign names found: {', '.join(invalid_campaigns)}. Expected: {', '.join(valid_campaigns)}")
-      
         if 'Date' in df.columns:
             def normalize_date(x):
                 if pd.notnull(x) and str(x).strip():
@@ -502,7 +496,7 @@ def calculate_campaign_averages(df):
         st.error(f"Error calculating campaign averages: {str(e)}")
         return pd.DataFrame()
 
-# Calculate top 3-5 agents with lowest average Spent Time per campaign
+# Calculate top 3-5 agents with lowest average Spent Time per campaign (for Excel only)
 def calculate_top_agents_lowest_spent_time_per_campaign(df):
     try:
         required_columns = ['Campaign', 'Collector Name', 'Spent Time']
@@ -616,14 +610,6 @@ if st.session_state.get('show_data', False):
             else:
                 st.warning("No data available for daily averages.")
 
-            # AGENTS WITH LOWEST AVERAGE SPENT TIME PER CAMPAIGN section
-            st.header("AGENTS WITH LOWEST AVERAGE SPENT TIME PER CAMPAIGN")
-            top_agents_df, top_agents_excel = calculate_top_agents_lowest_spent_time_per_campaign(raw_df)
-            if not top_agents_df.empty:
-                st.dataframe(top_agents_df, use_container_width=True)
-            else:
-                st.warning("No data available for top agents.")
-
             # AVERAGE PER CAMPAIGN section
             st.header("AVERAGE PER CAMPAIGN")
             campaign_averages_df = calculate_campaign_averages(raw_df)
@@ -632,7 +618,9 @@ if st.session_state.get('show_data', False):
             else:
                 st.warning("No data available for campaign averages.")
 
-            # DOWNLOAD EXCEL
+            # DOWNLOAD EXCEL (includes Top Agents sheet, even if not shown in UI)
+            top_agents_df, top_agents_excel = calculate_top_agents_lowest_spent_time_per_campaign(raw_df)  # Calculate for Excel only
+
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
                 # Total per Agent
@@ -649,7 +637,7 @@ if st.session_state.get('show_data', False):
                 if not campaign_averages_df.empty:
                     campaign_averages_df.to_excel(writer, index=False, sheet_name='Average per Campaign')
 
-                # Top Agents: Custom Format
+                # Top Agents: Custom Format (still included in Excel)
                 if not top_agents_excel.empty:
                     sheet_name = 'Top Agents Lowest Spent Time'
                     workbook = writer.book
