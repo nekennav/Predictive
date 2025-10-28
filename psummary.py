@@ -1,674 +1,533 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime, date
+from datetime import datetime
 import os
-from werkzeug.utils import secure_filename
 import io
+import shutil
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Alignment, Font
+from werkzeug.utils import secure_filename
 
-# Set page configuration
-st.set_page_config(page_title="Neeiil", page_icon="💎", layout="wide")
-
-# Custom CSS for aesthetic computer-themed styling with NEW SPACE BACKGROUND
+# -------------------------------------------------
+# Page config + Space-theme CSS (TUNAY NA MAGNIFYING GLASS ICON!)
+# -------------------------------------------------
+st.set_page_config(page_title="NEIL", page_icon="Gem", layout="wide")
 st.markdown(
     """
     <style>
-    /* Main app background with space planet wallpaper */
-    .stApp {
-        background-image: url('https://images.wallpaperscraft.com/image/single/planet_space_universe_127497_2560x1440.jpg');
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        background-color: rgba(10, 15, 30, 0.95); /* Dark space fallback */
-        color: #e0e0e0; /* Light gray for text readability */
-        animation: panningBackground 30s linear infinite;
-    }
-    @keyframes panningBackground {
-        0% { background-position: 50% 0%; }
-        50% { background-position: 50% 100%; }
-        100% { background-position: 50% 0%; }
-    }
-    /* Title styling with cosmic glow */
-    h1 {
-        color: #a6b1e1; /* Light purple for PREDICTIVE SUMMARY */
-        font-family: 'Arial', sans-serif;
-        text-align: center;
-        text-shadow:
-            -1px -1px 0 #ffffff,
-             1px -1px 0 #ffffff,
-            -1px 1px 0 #ffffff,
-             1px 1px 0 #ffffff,
-            0 0 10px rgba(166, 177, 225, 0.8); /* Soft glow */
-        font-size: 2.5rem;
-    }
-    /* Header styling */
-    h2 {
-        color: #dcd6ff;
-        font-size: 1.5rem;
-    }
-    /* File uploader styling */
-    .stFileUploader {
-        background-color: rgba(162, 138, 255, 0.1);
-        border: 2px solid #a28aff;
-        border-radius: 10px;
-        padding: 10px;
-        margin-top: 20px;
-    }
-    .stFileUploader label {
-        color: #e0e0e0;
-        font-size: 1.1rem;
-    }
-    .stFileUploader input[type="file"]::file-selector-button {
-        color: #000000;
-        font-size: 1rem;
-    }
-    /* Button styling */
-    .stButton > button {
-        background-color: #a28aff;
-        color: #e0e0e0;
-        border-radius: 8px;
-        padding: 10px 20px;
-        font-weight: bold;
-        transition: background-color 0.3s;
-        border: 1px solid #dcd6ff;
-        font-size: 1rem;
-    }
-    .stButton > button:hover {
-        background-color: #8b74e6;
-        border-color: #a28aff;
-    }
-    .stDownloadButton > button {
-        color: #000000;
-    }
-    /* Text area and dataframe styling */
-    .stTextArea textarea, .stDataFrame {
-        background-color: rgba(162, 138, 255, 0.15);
-        color: #e0e0e0;
-        border: 1px solid #a28aff;
-        border-radius: 8px;
-        padding: 10px;
-        margin: 0;
-        font-size: 0.9rem;
-        font-family: 'Arial', sans-serif;
-    }
-    /* Bold campaign names in top agents dataframe */
-    .stDataFrame [data-testid="stTable"] tr:has(td:nth-child(2):empty) td:first-child {
-        font-weight: bold;
-    }
-    /* Alert styling */
-    .stAlert {
-        background-color: rgba(220, 214, 255, 0.2);
-        color: #e0e0e0;
-        border-radius: 8px;
-        font-size: 0.9rem;
-    }
-    /* Table text */
-    .stText, table {
-        color: #e0e0e0;
-        font-family: 'Arial', sans-serif;
-        font-size: 0.9rem;
-    }
-    /* Date input label styling */
-    .stDateInput label {
-        color: #ffffff;
-        font-size: 1.1rem;
-    }
-    .stDateInput > div > div > input {
-        color: #000000 !important;
-    }
-    /* Selectbox styling */
+    .stApp {background-image:url('https://images.wallpaperscraft.com/image/single/planet_space_universe_127497_2560x1440.jpg');
+            background-size:cover;background-position:center;background-repeat:no-repeat;
+            background-color:rgba(10,15,30,0.95);color:#e0e0e0;
+            animation:panningBackground 30s linear infinite;}
+    @keyframes panningBackground{0%{background-position:50% 0%}50%{background-position:50% 100%}100%{background-position:50% 0%}}
+    h1{color:#a6b1e1;font-family:Arial,sans-serif;text-align:center;
+       text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff,
+                   0 0 10px rgba(166,177,225,0.8);font-size:2.5rem}
+    h2{color:#dcd6ff;font-size:1.5rem}
+    .stFileUploader{background:rgba(162,138,255,0.1);border:2px solid #a28aff;border-radius:10px;padding:10px;margin-top:20px}
+    .stFileUploader label{color:#e0e0e0;font-size:1.1rem}
+    .stButton>button{background:#a28aff;color:#e0e0e0;border-radius:8px;padding:10px 20px;
+                     font-weight:bold;border:1px solid #dcd6ff;font-size:1rem}
+    .stButton>button:hover{background:#8b74e6;border-color:#a28aff}
+    .stDownloadButton>button{color:#000}
+    .stTextArea textarea,.stDataFrame{background:rgba(162,138,255,0.15);color:#e0e0e0;
+                                      border:1px solid #a28aff;border-radius:8px;padding:10px;
+                                      font-size:0.9rem;font-family:Arial,sans-serif}
+    .stAlert{background:rgba(220,214,255,0.2);color:#e0e0e0;border-radius:8px;font-size:0.9rem}
+    .stText,table{color:#e0e0e0;font-family:Arial,sans-serif;font-size:0.9rem}
+    .stDateInput label{color:#fff;font-size:1.1rem}
+    .stDateInput>div>div>input{color:#000 !important}
+
+    /* MULTISELECT WITH REAL MAGNIFYING GLASS ICON */
     div[data-baseweb="select"] {
-        background-color: rgba(162, 138, 255, 0.15);
-        border: 1px solid #a28aff;
-        border-radius: 8px;
+        background:rgba(162,138,255,0.15) !important;
+        border:1px solid #a28aff !important;
+        border-radius:8px !important;
     }
     div[data-baseweb="select"] input {
-        background-color: rgba(162, 138, 255, 0.15) !important;
-        color: #000000 !important;
+        background:rgba(162,138,255,0.15)!important;
+        color:#000!important;
     }
-    div[data-baseweb="select"] div[role="listbox"] {
-        background-color: rgba(162, 138, 255, 0.15);
-        color: #000000;
-        border: 1px solid #a28aff;
-        border-radius: 8px;
-    }
-    /* Magnifying glass icon */
     div[data-baseweb="select"] > div:first-child::before {
-        content: '🔍';
+        content: 'Magnifying Glass'; /* REAL ICON */
         position: absolute;
-        left: 10px;
+        left: 12px;
         top: 50%;
         transform: translateY(-50%);
         pointer-events: none;
         z-index: 1;
-        font-size: 1.2rem;
+        font-size: 1.3rem;
+        opacity: 0.85;
     }
     div[data-baseweb="select"] > div:first-child > div {
-        padding-left: 30px !important;
+        padding-left: 38px !important;
     }
-    /* Responsive design */
-    @media (max-width: 600px) {
-        h1 { font-size: 1.8rem; }
-        .stFileUploader { margin-top: 10px; }
-        .stFileUploader label { font-size: 0.9rem; }
-        .stButton > button { padding: 8px 16px; font-size: 0.85rem; }
-        .stTextArea textarea, .stDataFrame, .stAlert, .stText, table { font-size: 0.8rem; }
-        .stDateInput label { font-size: 0.9rem; }
-        .stFileUploader input[type="file"]::file-selector-button { font-size: 0.85rem; }
-        .stDownloadButton > button { font-size: 0.85rem; }
+
+    @media(max-width:600px){
+        h1{font-size:1.8rem}
+        .stFileUploader{margin-top:10px}
+        .stFileUploader label{font-size:0.9rem}
+        .stButton>button{padding:8px 16px;font-size:0.85rem}
+        .stTextArea textarea,.stDataFrame,.stAlert,.stText,table{font-size:0.8rem}
+        .stDateInput label{font-size:0.9rem}
+        div[data-baseweb="select"] > div:first-child::before {font-size:1.1rem; left:10px;}
+        div[data-baseweb="select"] > div:first-child > div {padding-left:32px !important;}
     }
     </style>
     """,
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )
 
-# Initialize session state
-if 'show_data' not in st.session_state:
+# -------------------------------------------------
+# Session state
+# -------------------------------------------------
+if "df" not in st.session_state:
+    st.session_state.df = pd.DataFrame()
+if "show_data" not in st.session_state:
     st.session_state.show_data = False
-
-if 'last_uploaded_file' not in st.session_state:
+if "last_uploaded_file" not in st.session_state:
     st.session_state.last_uploaded_file = None
 
-# Check and update session schema
-def init_session(columns):
-    normalized_columns = [col.strip() for col in columns]
-    if 'CAMPAIGN' in normalized_columns:
-        normalized_columns[normalized_columns.index('CAMPAIGN')] = 'Campaign'
-    elif 'campaign' in normalized_columns:
-        normalized_columns[normalized_columns.index('campaign')] = 'Campaign'
-    elif 'Campaign Name' in normalized_columns:
-        normalized_columns[normalized_columns.index('Campaign Name')] = 'Campaign'
-    elif 'CAMPAIGN NAME' in normalized_columns:
-        normalized_columns[normalized_columns.index('CAMPAIGN NAME')] = 'Campaign'
-  
-    expected_columns = ['filename'] + normalized_columns + ['upload_date']
-  
-    if 'df' not in st.session_state:
-        st.session_state.df = pd.DataFrame(columns=expected_columns)
-    else:
-        current_columns = set(st.session_state.df.columns)
-        if current_columns != set(expected_columns):
-            st.warning(f"Schema mismatch. Current columns: {list(current_columns)}, Expected: {expected_columns}. Resetting stored data.")
-            st.session_state.df = pd.DataFrame(columns=expected_columns)
-
-# Save data from file to session without transformations
+# -------------------------------------------------
+# SUMMARY HELPERS (same as before)
+# -------------------------------------------------
 def save_file_to_session(uploaded_file):
     filename = secure_filename(uploaded_file.name)
     ext = os.path.splitext(filename)[1].lower()
-  
-    try:
-        if ext == '.csv':
-            df = pd.read_csv(uploaded_file, dtype=str)
-        elif ext in ['.xls', '.xlsx']:
-            df = pd.read_excel(uploaded_file, dtype=str)
-        else:
-            raise ValueError("Unsupported file type. Please upload CSV, XLS, or XLSX.")
-      
-        df.columns = df.columns.str.strip()
-      
-        campaign_variants = ['CAMPAIGN', 'campaign', 'Campaign Name', 'CAMPAIGN NAME']
-        for variant in campaign_variants:
-            if variant in df.columns:
-                df = df.rename(columns={variant: 'Campaign'})
-                st.info(f"Renamed column '{variant}' to 'Campaign' for consistency.")
-                break
-      
-        required_cols = ['Collector Name', 'Campaign']
-        if not all(col in df.columns for col in required_cols):
-            raise ValueError(f"File must contain required columns: {', '.join(required_cols)}. Note: 'CAMPAIGN' should be renamed to 'Campaign'.")
-      
-        if 'Date' in df.columns:
-            def normalize_date(x):
-                if pd.notnull(x) and str(x).strip():
-                    try:
-                        dt = pd.to_datetime(x, errors='coerce', dayfirst=False, yearfirst=False)
-                        if pd.notnull(dt):
-                            return dt.strftime('%m/%d/%Y')
-                        return str(x).strip()
-                    except:
-                        return str(x).strip()
-                return x
-            df['Date'] = df['Date'].apply(normalize_date)
-      
-        init_session(df.columns)
-      
-        upload_date = datetime.now().strftime('%Y-%m-%d')
-        df['filename'] = filename
-        df['upload_date'] = upload_date
-      
-        if st.session_state.df.empty:
-            st.session_state.df = df
-        else:
-            st.session_state.df = pd.concat([st.session_state.df, df], ignore_index=True)
-      
-        return filename
-    except Exception as e:
-        raise Exception(f"Failed to process file: {str(e)}")
-
-# Get all records as DataFrame
-def get_all_records():
-    try:
-        if 'df' in st.session_state and not st.session_state.df.empty:
-            df = st.session_state.df.copy()
-            display_df = df.copy()
-            data_cols = [col for col in df.columns if col not in ['filename', 'upload_date']]
-            cols = ['filename'] + data_cols + ['upload_date']
-            display_df = display_df[cols]
-            return display_df, df
-        else:
-            return pd.DataFrame(), pd.DataFrame()
-    except Exception as e:
-        st.error(f"Error retrieving records: {str(e)}")
-        return pd.DataFrame(), pd.DataFrame()
-
-# Filter records by date range
-def filter_records_by_date(start_date, end_date):
-    try:
-        start_date_str = start_date.strftime('%m/%d/%Y')
-        end_date_str = end_date.strftime('%m/%d/%Y')
-      
-        if 'df' not in st.session_state or st.session_state.df.empty:
-            st.warning("No data stored in session.")
-            return pd.DataFrame(), pd.DataFrame()
-      
-        df = st.session_state.df.copy()
-      
-        if 'Date' not in df.columns:
-            st.warning("No 'Date' column found. Returning all data.")
-            filtered_df = df
-        else:
-            if start_date == end_date:
-                filtered_df = df[df['Date'] == start_date_str]
-            else:
-                filtered_df = df[df['Date'].between(start_date_str, end_date_str)]
-      
-        if filtered_df.empty:
-            st.warning(f"No records found for date range {start_date_str} to {end_date_str}. Check if dates in the 'Date' column are in MM/DD/YYYY format.")
-      
-        display_df = filtered_df.copy()
-        data_cols = [col for col in filtered_df.columns if col not in ['filename', 'upload_date']]
-        cols = ['filename'] + data_cols + ['upload_date']
-        display_df = display_df[cols]
-        return display_df, filtered_df
-    except Exception as e:
-        st.error(f"Error filtering records: {str(e)}")
-        return pd.DataFrame(), pd.DataFrame()
-
-# Helper function to convert [H]:MM:SS time string to seconds
-def time_to_seconds(t):
-    if pd.isna(t) or str(t).strip() == '':
-        return 0.0
-    try:
-        parts = str(t).strip().split(':')
-        if len(parts) == 3:
-            hours = float(parts[0]) if parts[0] and parts[0].replace('-', '').isdigit() else 0.0
-            minutes = float(parts[1]) if parts[1].isdigit() else 0.0
-            seconds = float(parts[2]) if parts[2].isdigit() else 0.0
-            return hours * 3600 + minutes * 60 + seconds
-        elif len(parts) == 2:
-            minutes = float(parts[0]) if parts[0].isdigit() else 0.0
-            seconds = float(parts[1]) if parts[1].isdigit() else 0.0
-            return minutes * 60 + seconds
-        else:
-            return 0.0
-    except (ValueError, TypeError):
-        return 0.0
-
-# Helper function to convert seconds back to [H]:MM:SS string
-def seconds_to_time(seconds):
-    if pd.isna(seconds) or seconds == 0:
-        return '0:00:00'
-    hours = int(float(seconds) // 3600)
-    minutes = int((float(seconds) % 3600) // 60)
-    secs = int(float(seconds) % 60)
-    return f"{hours}:{minutes:02d}:{secs:02d}"
-
-# Calculate totals and averages by agent and campaign
-def calculate_agent_totals(df):
-    try:
-        metric_columns = [
-            'Total Calls', 'Spent Time', 'Talk Time', 'Wait Time',
-            'Write Time', 'Pause Time'
-        ]
-        available_metrics = [col for col in metric_columns if col in df.columns]
-      
-        if 'Collector Name' not in df.columns or not available_metrics:
-            missing_cols = [col for col in ['Collector Name'] + metric_columns if col not in df.columns]
-            st.warning(f"Required columns missing: {', '.join(missing_cols)}. Cannot calculate totals.")
-            return pd.DataFrame()
-      
-        group_cols = ['Collector Name', 'Campaign'] if 'Campaign' in df.columns else ['Collector Name']
-      
-        df = df.copy()
-      
-        if 'Total Calls' in available_metrics:
-            df['Total Calls'] = pd.to_numeric(df['Total Calls'], errors='coerce').fillna(0.0).round().astype(int)
-      
-        time_metrics = [col for col in available_metrics if col != 'Total Calls']
-        for col in time_metrics:
-            df[f'{col}_seconds'] = df[col].apply(time_to_seconds).fillna(0.0)
-      
-        sum_cols = ['Total Calls'] + [f'{col}_seconds' for col in time_metrics]
-        totals_df = df.groupby(group_cols)[sum_cols].sum().reset_index()
-      
-        for col in time_metrics:
-            totals_df[col] = totals_df[f'{col}_seconds'].apply(seconds_to_time)
-            totals_df = totals_df.drop(columns=[f'{col}_seconds'])
-      
-        if 'Total Calls' in available_metrics and totals_df['Total Calls'].sum() > 0:
-            for col in ['Talk Time', 'Wait Time', 'Write Time']:
-                if col in time_metrics:
-                    totals_df[f'AVG {col}'] = totals_df.apply(
-                        lambda row: seconds_to_time(time_to_seconds(row[col]) / row['Total Calls'] if row['Total Calls'] > 0 else 0), axis=1
-                    )
-      
-        display_columns = group_cols + ['Total Calls'] if 'Total Calls' in available_metrics else group_cols
-        for col in ['Spent Time', 'Talk Time', 'Wait Time', 'Write Time', 'Pause Time']:
-            if col in available_metrics:
-                display_columns.append(col)
-            if col in ['Talk Time', 'Wait Time', 'Write Time'] and col in available_metrics:
-                display_columns.append(f'AVG {col}')
-      
-        return totals_df[display_columns]
-    except Exception as e:
-        st.error(f"Error calculating totals: {str(e)}")
-        return pd.DataFrame()
-
-# Calculate daily averages per agent across all campaigns
-def calculate_daily_agent_averages(df):
-    try:
-        metric_columns = [
-            'Total Calls', 'Spent Time', 'Talk Time', 'Wait Time',
-            'Write Time', 'Pause Time'
-        ]
-        available_metrics = [col for col in metric_columns if col in df.columns]
-      
-        if 'Collector Name' not in df.columns or 'Date' not in df.columns or not available_metrics:
-            return pd.DataFrame()
-      
-        group_cols = ['Collector Name', 'Campaign'] if 'Campaign' in df.columns else ['Collector Name']
-        daily_group_cols = group_cols + ['Date']
-      
-        df = df.copy()
-      
-        if 'Total Calls' in available_metrics:
-            df['Total Calls'] = pd.to_numeric(df['Total Calls'], errors='coerce').fillna(0.0).round().astype(int)
-      
-        time_metrics = [col for col in available_metrics if col != 'Total Calls']
-        for col in time_metrics:
-            df[f'{col}_seconds'] = df[col].apply(time_to_seconds).fillna(0.0)
-      
-        daily_mean_cols = ['Total Calls'] + [f'{col}_seconds' for col in time_metrics]
-        daily_averages = df.groupby(daily_group_cols)[daily_mean_cols].mean().reset_index()
-      
-        mean_cols = ['Total Calls'] + [f'{col}_seconds' for col in time_metrics]
-        averages_df = daily_averages.groupby(group_cols)[mean_cols].mean().reset_index()
-      
-        if 'Total Calls' in averages_df.columns:
-            averages_df['Total Calls'] = averages_df['Total Calls'].round().astype(int)
-      
-        for col in time_metrics:
-            averages_df[col] = averages_df[f'{col}_seconds'].apply(seconds_to_time)
-            averages_df = averages_df.drop(columns=[f'{col}_seconds'])
-      
-        if 'Total Calls' in available_metrics and averages_df['Total Calls'].sum() > 0:
-            for col in ['Talk Time', 'Wait Time', 'Write Time']:
-                if col in time_metrics:
-                    averages_df[f'AVG {col}'] = averages_df.apply(
-                        lambda row: seconds_to_time(time_to_seconds(row[col]) / row['Total Calls'] if row['Total Calls'] > 0 else 0), axis=1
-                    )
-      
-        display_columns = group_cols + ['Total Calls'] if 'Total Calls' in available_metrics else group_cols
-        for col in ['Spent Time', 'Talk Time', 'Wait Time', 'Write Time', 'Pause Time']:
-            if col in available_metrics:
-                display_columns.append(col)
-            if col in ['Talk Time', 'Wait Time', 'Write Time'] and col in available_metrics:
-                display_columns.append(f'AVG {col}')
-      
-        return averages_df[display_columns]
-    except Exception as e:
-        st.error(f"Error calculating daily agent averages: {str(e)}")
-        return pd.DataFrame()
-
-# Calculate averages by campaign
-def calculate_campaign_averages(df):
-    try:
-        metric_columns = [
-            'Total Calls', 'Spent Time', 'Talk Time', 'Wait Time',
-            'Write Time', 'Pause Time'
-        ]
-        available_metrics = [col for col in metric_columns if col in df.columns]
-      
-        if 'Campaign' not in df.columns or not available_metrics:
-            return pd.DataFrame()
-      
-        df = df.copy()
-      
-        if df['Campaign'].isna().all() or (df['Campaign'] == '').all():
-            return pd.DataFrame()
-      
-        if 'Total Calls' in available_metrics:
-            df['Total Calls'] = pd.to_numeric(df['Total Calls'], errors='coerce').fillna(0.0).round().astype(int)
-      
-        time_metrics = [col for col in available_metrics if col != 'Total Calls']
-        for col in time_metrics:
-            df[f'{col}_seconds'] = df[col].apply(time_to_seconds).fillna(0.0)
-      
-        mean_cols = ['Total Calls'] + [f'{col}_seconds' for col in time_metrics]
-        averages_df = df.groupby('Campaign')[mean_cols].mean().reset_index()
-      
-        if 'Total Calls' in averages_df.columns:
-            averages_df['Total Calls'] = averages_df['Total Calls'].round().astype(int)
-      
-        for col in time_metrics:
-            averages_df[col] = averages_df[f'{col}_seconds'].apply(seconds_to_time)
-            averages_df = averages_df.drop(columns=[f'{col}_seconds'])
-      
-        if 'Total Calls' in available_metrics and averages_df['Total Calls'].sum() > 0:
-            for col in ['Talk Time', 'Wait Time', 'Write Time']:
-                if col in time_metrics:
-                    averages_df[f'AVG {col}'] = averages_df.apply(
-                        lambda row: seconds_to_time(time_to_seconds(row[col]) / row['Total Calls'] if row['Total Calls'] > 0 else 0), axis=1
-                    )
-      
-        if 'Collector Name' in df.columns and 'Date' in df.columns:
-            agent_counts = df.groupby(['Campaign', 'Date'])['Collector Name'].nunique().reset_index()
-            avg_agents = agent_counts.groupby('Campaign')['Collector Name'].mean().reset_index()
-            avg_agents = avg_agents.rename(columns={'Collector Name': 'Average Number of Agents'})
-            avg_agents['Average Number of Agents'] = avg_agents['Average Number of Agents'].round().astype(int)
-            averages_df = averages_df.merge(avg_agents, on='Campaign', how='left')
-            averages_df['Average Number of Agents'] = averages_df['Average Number of Agents'].fillna(0)
-      
-        display_columns = ['Campaign']
-        if 'Total Calls' in available_metrics:
-            display_columns.append('Total Calls')
-        for col in ['Spent Time', 'Talk Time', 'Wait Time', 'Write Time', 'Pause Time']:
-            if col in available_metrics:
-                display_columns.append(col)
-            if col in ['Talk Time', 'Wait Time', 'Write Time'] and col in available_metrics:
-                display_columns.append(f'AVG {col}')
-        if 'Average Number of Agents' in averages_df.columns:
-            display_columns.append('Average Number of Agents')
-      
-        return averages_df[display_columns]
-    except Exception as e:
-        st.error(f"Error calculating campaign averages: {str(e)}")
-        return pd.DataFrame()
-
-# Calculate top 3-5 agents with lowest average Spent Time per campaign (for Excel only)
-def calculate_top_agents_lowest_spent_time_per_campaign(df):
-    try:
-        required_columns = ['Campaign', 'Collector Name', 'Spent Time']
-        if not all(col in df.columns for col in required_columns):
-            return pd.DataFrame(), pd.DataFrame()
-      
-        df = df.copy()
-        df['Spent Time_seconds'] = df['Spent Time'].apply(time_to_seconds).fillna(0.0)
-        agent_spent_time = df.groupby(['Campaign', 'Collector Name'])['Spent Time_seconds'].mean().reset_index()
-        agent_spent_time = agent_spent_time[agent_spent_time['Spent Time_seconds'] > 0]
-
-        if agent_spent_time.empty:
-            return pd.DataFrame(columns=['Agent', 'Average Spent Time']), pd.DataFrame()
-
-        top_agents = (
-            agent_spent_time.groupby('Campaign')
-            .apply(lambda x: x.nsmallest(5, 'Spent Time_seconds'))
-            .reset_index(drop=True)
-        )
-
-        # For display
-        display_rows = []
-        for campaign in sorted(top_agents['Campaign'].unique()):
-            if pd.isna(campaign) or not campaign.strip():
-                continue
-            display_rows.append([campaign, ''])
-            campaign_agents = top_agents[top_agents['Campaign'] == campaign].head(5)
-            for _, row in campaign_agents.iterrows():
-                display_rows.append([row['Collector Name'], seconds_to_time(row['Spent Time_seconds'])])
-            display_rows.append(['', ''])
-        top_agents_df = pd.DataFrame(display_rows, columns=['Agent', 'Average Spent Time'])
-
-        return top_agents_df, top_agents
-    except Exception as e:
-        st.error(f"Error calculating top agents: {str(e)}")
-        return pd.DataFrame(), pd.DataFrame()
-
-# Streamlit app
-st.title("PREDICTIVE SUMMARY")
-
-# File upload section
-st.header("Upload a File")
-uploaded_file = st.file_uploader("Choose a file", type=['csv', 'xls', 'xlsx'])
-
-if uploaded_file is not None:
-    current_file_name = uploaded_file.name
-    if st.session_state.last_uploaded_file != current_file_name:
-        try:
-            filename = save_file_to_session(uploaded_file)
-            st.session_state.last_uploaded_file = current_file_name
-            st.markdown(f'<p style="color:white;">Data from \'{filename}\' uploaded and stored successfully!</p>', unsafe_allow_html=True)
-        except Exception as e:
-            st.error(f"Error: {str(e)}")
-
-# Date range filter section
-st.header("Filter Data by Date Range")
-default_start_date = datetime.today().date()
-default_end_date = datetime.today().date()
-if 'df' in st.session_state and not st.session_state.df.empty and 'Date' in st.session_state.df.columns:
-    try:
-        valid_dates = pd.to_datetime(st.session_state.df['Date'], format='%m/%d/%Y', errors='coerce')
-        valid_dates = valid_dates.dropna()
-        if not valid_dates.empty:
-            default_start_date = valid_dates.min().date()
-            default_end_date = valid_dates.max().date()
-    except Exception as e:
-        st.warning(f"Error determining date range: {str(e)}. Using today's date as default.")
-
-col1, col2 = st.columns(2)
-with col1:
-    start_date = st.date_input("Start Date", value=default_start_date)
-with col2:
-    end_date = st.date_input("End Date", value=default_end_date)
-
-# Show All button
-if st.button("Show All"):
-    st.session_state.show_data = True
-
-# Display data sections
-if st.session_state.get('show_data', False):
-    if start_date <= end_date:
-        _, raw_df = filter_records_by_date(start_date, end_date)
-        if not raw_df.empty:
-            # TOTAL section
-            st.header("TOTAL PER AGENT")
-            totals_df = calculate_agent_totals(raw_df)
-            if not totals_df.empty:
-                all_agents = sorted(totals_df['Collector Name'].unique())
-                st.markdown('<p style="color:white;">Search for Agent (Total)</p>', unsafe_allow_html=True)
-                search_agent_total = st.multiselect("", options=all_agents, placeholder="Select one or more agents", key="search_total")
-                if search_agent_total:
-                    filtered_totals = totals_df[totals_df['Collector Name'].isin(search_agent_total)]
-                    st.dataframe(filtered_totals, use_container_width=True)
-                else:
-                    st.write("Select one or more agents to view details.")
-            else:
-                st.warning("No data available for total calculations.")
-
-            # AVERAGE DAILY PER AGENT section
-            st.header("AVERAGE DAILY PER AGENT")
-            daily_averages_df = calculate_daily_agent_averages(raw_df)
-            if not daily_averages_df.empty:
-                all_agents_daily = sorted(daily_averages_df['Collector Name'].unique())
-                st.markdown('<p style="color:white;">Search for Agent (Daily Average)</p>', unsafe_allow_html=True)
-                search_agent_daily = st.multiselect("", options=all_agents_daily, placeholder="Select one or more agents", key="search_daily")
-                if search_agent_daily:
-                    filtered_daily = daily_averages_df[daily_averages_df['Collector Name'].isin(search_agent_daily)]
-                    st.dataframe(filtered_daily, use_container_width=True)
-                else:
-                    st.write("Select one or more agents to view details.")
-            else:
-                st.warning("No data available for daily averages.")
-
-            # AVERAGE PER CAMPAIGN section
-            st.header("AVERAGE PER CAMPAIGN")
-            campaign_averages_df = calculate_campaign_averages(raw_df)
-            if not campaign_averages_df.empty:
-                st.dataframe(campaign_averages_df, use_container_width=True)
-            else:
-                st.warning("No data available for campaign averages.")
-
-            # DOWNLOAD EXCEL (includes Top Agents sheet, even if not shown in UI)
-            top_agents_df, top_agents_excel = calculate_top_agents_lowest_spent_time_per_campaign(raw_df)  # Calculate for Excel only
-
-            output = io.BytesIO()
-            with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                # Total per Agent
-                df_to_save = filtered_totals if 'filtered_totals' in locals() and not filtered_totals.empty else totals_df
-                if not df_to_save.empty:
-                    df_to_save.to_excel(writer, index=False, sheet_name='Total per Agent')
-
-                # Daily Average
-                df_daily = filtered_daily if 'filtered_daily' in locals() and not filtered_daily.empty else daily_averages_df
-                if not df_daily.empty:
-                    df_daily.to_excel(writer, index=False, sheet_name='Average Daily per Agent')
-
-                # Campaign Average
-                if not campaign_averages_df.empty:
-                    campaign_averages_df.to_excel(writer, index=False, sheet_name='Average per Campaign')
-
-                # Top Agents: Custom Format (still included in Excel)
-                if not top_agents_excel.empty:
-                    sheet_name = 'Top Agents Lowest Spent Time'
-                    workbook = writer.book
-                    worksheet = workbook.create_sheet(title=sheet_name)
-                    row_idx = 1
-                    for campaign in sorted(top_agents_excel['Campaign'].dropna().unique()):
-                        worksheet.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=2)
-                        cell = worksheet.cell(row=row_idx, column=1)
-                        cell.value = campaign
-                        cell.font = Font(bold=True)
-                        cell.alignment = Alignment(horizontal='left')
-                        row_idx += 1
-
-                        agents = top_agents_excel[top_agents_excel['Campaign'] == campaign].head(5)
-                        for _, row in agents.iterrows():
-                            worksheet.cell(row=row_idx, column=1).value = row['Collector Name']
-                            worksheet.cell(row=row_idx, column=2).value = seconds_to_time(row['Spent Time_seconds'])
-                            worksheet.cell(row=row_idx, column=1).alignment = Alignment(horizontal='left')
-                            worksheet.cell(row=row_idx, column=2).alignment = Alignment(horizontal='left')
-                            row_idx += 1
-                        row_idx += 1
-
-                    worksheet.column_dimensions['A'].width = 35
-                    worksheet.column_dimensions['B'].width = 15
-
-            output.seek(0)
-            st.download_button(
-                label="Download data as Excel",
-                data=output,
-                file_name=f"summary_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+    if ext == ".csv":
+        df = pd.read_csv(uploaded_file, dtype=str)
+    elif ext in [".xls", ".xlsx"]:
+        df = pd.read_excel(uploaded_file, dtype=str)
     else:
-        st.error("Start date must be before or equal to end date.")
+        raise ValueError("Only CSV / XLS / XLSX")
+    df.columns = df.columns.str.strip()
+    for v in ["CAMPAIGN", "campaign", "Campaign Name", "CAMPAIGN NAME"]:
+        if v in df.columns:
+            df = df.rename(columns={v: "Campaign"})
+            break
+    if not {"Collector Name", "Campaign"}.issubset(df.columns):
+        raise ValueError("Need Collector Name & Campaign")
+    if "Date" in df.columns:
+        def norm(x):
+            if pd.notnull(x) and str(x).strip():
+                try:
+                    return pd.to_datetime(x, errors="coerce").strftime("%m/%d/%Y")
+                except:
+                    pass
+            return str(x).strip()
+        df["Date"] = df["Date"].apply(norm)
+    df["filename"] = filename
+    df["upload_date"] = datetime.now().strftime("%Y-%m-%d")
+    if st.session_state.df.empty:
+        st.session_state.df = df
+    else:
+        st.session_state.df = pd.concat([st.session_state.df, df], ignore_index=True)
+    return filename
+
+def filter_records_by_date(start, end):
+    s, e = start.strftime("%m/%d/%Y"), end.strftime("%m/%d/%Y")
+    df = st.session_state.df.copy()
+    if df.empty:
+        return pd.DataFrame(), pd.DataFrame()
+    if "Date" not in df.columns:
+        filtered = df
+    else:
+        filtered = df[df["Date"].between(s, e)] if start != end else df[df["Date"] == s]
+    disp = filtered.copy()
+    data_cols = [c for c in filtered.columns if c not in ["filename", "upload_date"]]
+    disp = disp[["filename"] + data_cols + ["upload_date"]]
+    return disp, filtered
+
+def time_to_seconds(t):
+    if pd.isna(t) or not str(t).strip():
+        return 0.0
+    try:
+        parts = [float(p) if p.replace("-", "").replace(".", "").isdigit() else 0
+                 for p in str(t).strip().split(":")]
+        if len(parts) == 3:
+            return max(parts[0], 0) * 3600 + max(parts[1], 0) * 60 + max(parts[2], 0)
+        if len(parts) == 2:
+            return max(parts[0], 0) * 60 + max(parts[1], 0)
+    except:
+        pass
+    return 0.0
+
+def seconds_to_time(s):
+    s = int(float(s) if s else 0)
+    h, s = divmod(s, 3600)
+    m, s = divmod(s, 60)
+    return f"{h}:{m:02d}:{s:02d}"
+
+def calculate_agent_totals(df):
+    metrics = ["Total Calls","Spent Time","Talk Time","Wait Time","Write Time","Pause Time"]
+    avail = [c for c in metrics if c in df.columns]
+    if not {"Collector Name"}.issubset(df.columns) or not avail:
+        return pd.DataFrame()
+    group = ["Collector Name","Campaign"] if "Campaign" in df.columns else ["Collector Name"]
+    df = df.copy()
+    df["Total Calls"] = pd.to_numeric(df.get("Total Calls",0),errors="coerce").fillna(0).astype(int)
+    time_cols = [c for c in avail if c != "Total Calls"]
+    for c in time_cols:
+        df[f"{c}_sec"] = df[c].apply(time_to_seconds)
+    sums = df.groupby(group)[["Total Calls"]+[f"{c}_sec" for c in time_cols]].sum().reset_index()
+    for c in time_cols:
+        sums[c] = sums[f"{c}_sec"].apply(seconds_to_time)
+        sums.drop(columns=f"{c}_sec",inplace=True)
+    if "Total Calls" in sums.columns and sums["Total Calls"].sum():
+        for c in ["Talk Time","Wait Time","Write Time"]:
+            if c in time_cols:
+                sums[f"AVG {c}"] = sums.apply(
+                    lambda r: seconds_to_time(time_to_seconds(r[c])/r["Total Calls"]) if r["Total Calls"] else "0:00:00",axis=1)
+    cols = group + ["Total Calls"] + [c for c in ["Spent Time","Talk Time","Wait Time","Write Time","Pause Time"] if c in avail] \
+           + [f"AVG {c}" for c in ["Talk Time","Wait Time","Write Time"] if f"AVG {c}" in sums.columns]
+    return sums[cols]
+
+def calculate_daily_agent_averages(df):
+    metrics = ["Total Calls","Spent Time","Talk Time","Wait Time","Write Time","Pause Time"]
+    avail = [c for c in metrics if c in df.columns]
+    if not {"Collector Name","Date"}.issubset(df.columns) or not avail:
+        return pd.DataFrame()
+    group = ["Collector Name","Campaign"] if "Campaign" in df.columns else ["Collector Name"]
+    daily = group + ["Date"]
+    df = df.copy()
+    df["Total Calls"] = pd.to_numeric(df.get("Total Calls",0),errors="coerce").fillna(0).astype(int)
+    time_cols = [c for c in avail if c != "Total Calls"]
+    for c in time_cols:
+        df[f"{c}_sec"] = df[c].apply(time_to_seconds)
+    day_avg = df.groupby(daily)[["Total Calls"]+[f"{c}_sec" for c in time_cols]].mean().reset_index()
+    avg = day_avg.groupby(group)[["Total Calls"]+[f"{c}_sec" for c in time_cols]].mean().reset_index()
+    avg["Total Calls"] = avg["Total Calls"].round().astype(int)
+    for c in time_cols:
+        avg[c] = avg[f"{c}_sec"].apply(seconds_to_time)
+        avg.drop(columns=f"{c}_sec",inplace=True)
+    if "Total Calls" in avg.columns and avg["Total Calls"].sum():
+        for c in ["Talk Time","Wait Time","Write Time"]:
+            if c in time_cols:
+                avg[f"AVG {c}"] = avg.apply(
+                    lambda r: seconds_to_time(time_to_seconds(r[c])/r["Total Calls"]) if r["Total Calls"] else "0:00:00",axis=1)
+    cols = group + ["Total Calls"] + [c for c in ["Spent Time","Talk Time","Wait Time","Write Time","Pause Time"] if c in avail] \
+           + [f"AVG {c}" for c in ["Talk Time","Wait Time","Write Time"] if f"AVG {c}" in avg.columns]
+    return avg[cols]
+
+def calculate_campaign_averages(df):
+    metrics = ["Total Calls","Spent Time","Talk Time","Wait Time","Write Time","Pause Time"]
+    avail = [c for c in metrics if c in df.columns]
+    if "Campaign" not in df.columns or not avail:
+        return pd.DataFrame()
+    df = df.copy()
+    df = df[df["Campaign"].notna() & (df["Campaign"].str.strip() != "")]
+    if df.empty:
+        return pd.DataFrame()
+    df["Total Calls"] = pd.to_numeric(df.get("Total Calls",0),errors="coerce").fillna(0).astype(int)
+    time_cols = [c for c in avail if c != "Total Calls"]
+    for c in time_cols:
+        df[f"{c}_sec"] = df[c].apply(time_to_seconds)
+    avg = df.groupby("Campaign")[["Total Calls"]+[f"{c}_sec" for c in time_cols]].mean().reset_index()
+    avg["Total Calls"] = avg["Total Calls"].round().astype(int)
+    for c in time_cols:
+        avg[c] = avg[f"{c}_sec"].apply(seconds_to_time)
+        avg.drop(columns=f"{c}_sec",inplace=True)
+    if "Total Calls" in avg.columns and avg["Total Calls"].sum():
+        for c in ["Talk Time","Wait Time","Write Time"]:
+            if c in time_cols:
+                avg[f"AVG {c}"] = avg.apply(
+                    lambda r: seconds_to_time(time_to_seconds(r[c])/r["Total Calls"]) if r["Total Calls"] else "0:00:00",axis=1)
+    if {"Collector Name","Date"}.issubset(df.columns):
+        agents = df.groupby(["Campaign","Date"])["Collector Name"].nunique().reset_index()
+        avg_agents = agents.groupby("Campaign")["Collector Name"].mean().round().astype(int).reset_index()
+        avg_agents.rename(columns={"Collector Name":"Average Number of Agents"},inplace=True)
+        avg = avg.merge(avg_agents,on="Campaign",how="left").fillna({"Average Number of Agents":0})
+    cols = ["Campaign","Total Calls"] + [c for c in ["Spent Time","Talk Time","Wait Time","Write Time","Pause Time"] if c in avail] \
+           + [f"AVG {c}" for c in ["Talk Time","Wait Time","Write Time"] if f"AVG {c}" in avg.columns] \
+           + (["Average Number of Agents"] if "Average Number of Agents" in avg.columns else [])
+    return avg[cols]
+
+def calculate_top_agents_lowest_spent_time_per_campaign(df):
+    if not {"Campaign","Collector Name","Spent Time"}.issubset(df.columns):
+        return pd.DataFrame(), pd.DataFrame()
+    df = df.copy()
+    df["Spent_sec"] = df["Spent Time"].apply(time_to_seconds)
+    grp = df.groupby(["Campaign","Collector Name"])["Spent_sec"].mean().reset_index()
+    grp = grp[grp["Spent_sec"]>0]
+    if grp.empty:
+        return pd.DataFrame(columns=["Agent","Average Spent Time"]), pd.DataFrame()
+    top = grp.groupby("Campaign").apply(lambda x: x.nsmallest(5,"Spent_sec")).reset_index(drop=True)
+    rows = []
+    for camp in sorted(top["Campaign"].dropna().unique()):
+        if not camp or not str(camp).strip():
+            continue
+        rows.append([camp,""])
+        for _, r in top[top["Campaign"]==camp].head(5).iterrows():
+            rows.append([r["Collector Name"],seconds_to_time(r["Spent_sec"])])
+        rows.append(["",""])
+    disp = pd.DataFrame(rows,columns=["Agent","Average Spent Time"])
+    return disp, top
+
+# -------------------------------------------------
+# Tabs
+# -------------------------------------------------
+tab1, tab2 = st.tabs(["PREDICTIVE COMPILER", "PREDICTIVE SUMMARY"])
+
+# -------------------------------------------------
+# TAB 1: PREDICTIVE COMPILER
+# -------------------------------------------------
+with tab1:
+    st.title("PREDICTIVE COMPILER")
+    uploaded_files = st.file_uploader(
+        "Choose Excel files to merge",
+        accept_multiple_files=True,
+        type=["xlsx", "xls"],
+        key="compiler_uploader"
+    )
+
+    if uploaded_files:
+        UPLOAD_DIR = "tmp_compiler"
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+        file_paths = []
+        for f in uploaded_files:
+            path = os.path.join(UPLOAD_DIR, f.name)
+            with open(path, "wb") as out:
+                out.write(f.getbuffer())
+            file_paths.append(path)
+
+        with st.spinner("Merging files..."):
+            dfs = [pd.read_excel(p) for p in file_paths]
+            df = pd.concat(dfs, ignore_index=True)
+
+            for c in ["SNo.", "Pause Count"]:
+                if c in df.columns:
+                    df.drop(columns=c, inplace=True)
+
+            if "Collector Name" not in df.columns:
+                st.error("Missing 'Collector Name' column.")
+            else:
+                df = df[df["Collector Name"].notna() & (df["Collector Name"].str.strip() != "")]
+
+                time_cols = [
+                    "Spent Time", "Talk Time", "AVG Talk Time", "Wait Time",
+                    "Average Wait Time", "Write Time", "AVG Write Time", "Pause Time"
+                ]
+                time_cols = [c for c in time_cols if c in df.columns]
+                for c in time_cols:
+                    df[c] = df[c].apply(
+                        lambda x: sum(int(i) * 60**j for j, i in enumerate(reversed(str(x).split(":"))))
+                        if pd.notna(x) and isinstance(x, str) else (int(x) if pd.notna(x) else 0)
+                    )
+
+                if "Total Calls" not in df.columns:
+                    df["Total Calls"] = 1
+                df["Total Calls"] = pd.to_numeric(df["Total Calls"], errors="coerce").fillna(1)
+
+                agg = {c: "sum" for c in time_cols}
+                agg["Total Calls"] = "sum"
+                for c in df.columns:
+                    if c not in time_cols + ["Collector Name", "Total Calls"]:
+                        agg[c] = "first"
+                grouped = df.groupby("Collector Name").agg(agg).reset_index()
+
+                if "Total Calls" in grouped.columns and "Spent Time" in grouped.columns:
+                    cols = grouped.columns.tolist()
+                    cols.insert(cols.index("Spent Time"), cols.pop(cols.index("Total Calls")))
+                    grouped = grouped[cols]
+
+                avg_row = {"Collector Name": "Average"}
+                for c in time_cols:
+                    avg_row[c] = grouped[c].mean()
+                avg_row["Total Calls"] = grouped["Total Calls"].mean()
+                for c in grouped.columns:
+                    if c not in avg_row:
+                        avg_row[c] = None
+                avg_df = pd.DataFrame([avg_row])[grouped.columns]
+                result = pd.concat([grouped, avg_df], ignore_index=True)
+
+                st.subheader("Merged Preview")
+                preview = result.copy()
+                for c in time_cols:
+                    preview[c] = preview[c].apply(
+                        lambda s: f"{int(s)//3600}:{int(s)%3600//60:02d}:{int(s)%60:02d}" if pd.notna(s) else "0:00:00"
+                    )
+                st.dataframe(preview, use_container_width=True)
+
+                output = io.BytesIO()
+                with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                    excel_df = result.copy()
+                    for c in time_cols:
+                        excel_df[c] = excel_df[c] / 86400
+                    excel_df.to_excel(writer, index=False, sheet_name="Summary")
+                    ws = writer.sheets["Summary"]
+                    for c in time_cols:
+                        col_idx = result.columns.get_loc(c) + 1
+                        letter = get_column_letter(col_idx)
+                        for r in range(2, len(result) + 2):
+                            ws[f"{letter}{r}"].number_format = "[h]:mm:ss"
+                            ws[f"{letter}{r}"].alignment = Alignment(horizontal="right")
+                        ws[f"{letter}1"].alignment = Alignment(horizontal="right")
+                    for i, col in enumerate(result.columns, 1):
+                        if col != "Collector Name":
+                            letter = get_column_letter(i)
+                            for r in range(1, len(result) + 2):
+                                ws[f"{letter}{r}"].alignment = Alignment(horizontal="right")
+                output.seek(0)
+                st.download_button(
+                    "Download Merged Excel",
+                    data=output,
+                    file_name=f"Merged_{datetime.now():%Y%m%d_%H%M%S}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key="download_compiler"
+                )
+
+        def cleanup():
+            if os.path.exists(UPLOAD_DIR):
+                shutil.rmtree(UPLOAD_DIR)
+        import atexit
+        atexit.register(cleanup)
+    else:
+        st.info("Upload Excel files above to merge and generate summary.")
+
+# -------------------------------------------------
+# TAB 2: PREDICTIVE SUMMARY (WITH REAL MAGNIFYING GLASS ICON)
+# -------------------------------------------------
+with tab2:
+    st.title("PREDICTIVE SUMMARY")
+
+    st.header("Upload a File")
+    uploaded_file = st.file_uploader(
+        "Choose a file",
+        type=["csv", "xls", "xlsx"],
+        key="summary_uploader"
+    )
+
+    if uploaded_file is not None:
+        current_file_name = uploaded_file.name
+        if st.session_state.last_uploaded_file != current_file_name:
+            try:
+                filename = save_file_to_session(uploaded_file)
+                st.session_state.last_uploaded_file = current_file_name
+                st.success(f"Data from '{filename}' uploaded and stored successfully!")
+            except Exception as e:
+                st.error(f"Error: {str(e)}")
+
+    st.header("Filter Data by Date Range")
+    default_start_date = datetime.today().date()
+    default_end_date = datetime.today().date()
+    if "df" in st.session_state and not st.session_state.df.empty and "Date" in st.session_state.df.columns:
+        try:
+            valid_dates = pd.to_datetime(st.session_state.df["Date"], format="%m/%d/%Y", errors="coerce")
+            valid_dates = valid_dates.dropna()
+            if not valid_dates.empty:
+                default_start_date = valid_dates.min().date()
+                default_end_date = valid_dates.max().date()
+        except:
+            pass
+
+    col1, col2 = st.columns(2)
+    with col1:
+        start_date = st.date_input("Start Date", value=default_start_date)
+    with col2:
+        end_date = st.date_input("End Date", value=default_end_date)
+
+    if st.button("Show All"):
+        st.session_state.show_data = True
+
+    if st.session_state.get("show_data", False):
+        if start_date > end_date:
+            st.error("Start date must be before or equal to end date.")
+        else:
+            _, raw_df = filter_records_by_date(start_date, end_date)
+            if raw_df.empty:
+                st.warning("No records found for the selected date range.")
+            else:
+                # TOTAL PER AGENT
+                st.header("TOTAL PER AGENT")
+                totals_df = calculate_agent_totals(raw_df)
+                if not totals_df.empty:
+                    all_agents = sorted(totals_df["Collector Name"].unique())
+                    st.markdown("**Search for Agent (Total)**")
+                    search_agent_total = st.multiselect(
+                        "Select agents to view",
+                        options=all_agents,
+                        default=[],
+                        key="search_total"
+                    )
+                    if search_agent_total:
+                        filtered_totals = totals_df[totals_df["Collector Name"].isin(search_agent_total)]
+                        st.dataframe(filtered_totals, use_container_width=True)
+                    else:
+                        st.info("Select one or more agents to view totals.")
+                else:
+                    st.warning("No data for totals.")
+
+                # DAILY AVERAGE
+                st.header("AVERAGE DAILY PER AGENT")
+                daily_averages_df = calculate_daily_agent_averages(raw_df)
+                if not daily_averages_df.empty:
+                    all_agents_daily = sorted(daily_averages_df["Collector Name"].unique())
+                    st.markdown("**Search for Agent (Daily Average)**")
+                    search_agent_daily = st.multiselect(
+                        "Select agents to view",
+                        options=all_agents_daily,
+                        default=[],
+                        key="search_daily"
+                    )
+                    if search_agent_daily:
+                        filtered_daily = daily_averages_df[daily_averages_df["Collector Name"].isin(search_agent_daily)]
+                        st.dataframe(filtered_daily, use_container_width=True)
+                    else:
+                        st.info("Select one or more agents to view daily averages.")
+                else:
+                    st.warning("No data for daily averages.")
+
+                # CAMPAIGN AVERAGE
+                st.header("AVERAGE PER CAMPAIGN")
+                campaign_averages_df = calculate_campaign_averages(raw_df)
+                if not campaign_averages_df.empty:
+                    st.dataframe(campaign_averages_df, use_container_width=True)
+                else:
+                    st.warning("No data for campaign averages.")
+
+                # DOWNLOAD
+                top_agents_df, top_agents_excel = calculate_top_agents_lowest_spent_time_per_campaign(raw_df)
+                output = io.BytesIO()
+                with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                    df_to_save = filtered_totals if 'filtered_totals' in locals() and not filtered_totals.empty else totals_df
+                    if not df_to_save.empty:
+                        df_to_save.to_excel(writer, index=False, sheet_name="Total per Agent")
+                    df_daily = filtered_daily if 'filtered_daily' in locals() and not filtered_daily.empty else daily_averages_df
+                    if not df_daily.empty:
+                        df_daily.to_excel(writer, index=False, sheet_name="Average Daily per Agent")
+                    if not campaign_averages_df.empty:
+                        campaign_averages_df.to_excel(writer, index=False, sheet_name="Average per Campaign")
+                    if not top_agents_excel.empty:
+                        sheet_name = "Top Agents Lowest Spent Time"
+                        workbook = writer.book
+                        worksheet = workbook.create_sheet(title=sheet_name)
+                        row_idx = 1
+                        for campaign in sorted(top_agents_excel["Campaign"].dropna().unique()):
+                            worksheet.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=2)
+                            cell = worksheet.cell(row=row_idx, column=1)
+                            cell.value = campaign
+                            cell.font = Font(bold=True)
+                            cell.alignment = Alignment(horizontal="left")
+                            row_idx += 1
+                            agents = top_agents_excel[top_agents_excel["Campaign"] == campaign].head(5)
+                            for _, row in agents.iterrows():
+                                worksheet.cell(row=row_idx, column=1).value = row["Collector Name"]
+                                worksheet.cell(row=row_idx, column=2).value = seconds_to_time(row["Spent_sec"])
+                                worksheet.cell(row=row_idx, column=1).alignment = Alignment(horizontal="left")
+                                worksheet.cell(row=row_idx, column=2).alignment = Alignment(horizontal="left")
+                                row_idx += 1
+                            row_idx += 1
+                        worksheet.column_dimensions["A"].width = 35
+                        worksheet.column_dimensions["B"].width = 15
+                output.seek(0)
+                st.download_button(
+                    label="Download Summary Excel",
+                    data=output,
+                    file_name=f"summary_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+    else:
+        if not st.session_state.df.empty:
+            st.info("Click **'Show All'** to view summary data.")
+        else:
+            st.info("Upload a file to get started.")
