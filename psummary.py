@@ -9,69 +9,93 @@ from openpyxl.styles import Alignment, Font
 from werkzeug.utils import secure_filename
 
 # -------------------------------------------------
-# Page config + Space-theme CSS (TUNAY NA MAGNIFYING GLASS ICON!)
+# Page config + Space-theme CSS (WALANG ICON, WALANG HARANG!)
 # -------------------------------------------------
 st.set_page_config(page_title="NEIL", page_icon="Gem", layout="wide")
 st.markdown(
     """
     <style>
-    .stApp {background-image:url('https://images.wallpaperscraft.com/image/single/planet_space_universe_127497_2560x1440.jpg');
-            background-size:cover;background-position:center;background-repeat:no-repeat;
-            background-color:rgba(10,15,30,0.95);color:#e0e0e0;
-            animation:panningBackground 30s linear infinite;}
-    @keyframes panningBackground{0%{background-position:50% 0%}50%{background-position:50% 100%}100%{background-position:50% 0%}}
-    h1{color:#a6b1e1;font-family:Arial,sans-serif;text-align:center;
-       text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff,
-                   0 0 10px rgba(166,177,225,0.8);font-size:2.5rem}
-    h2{color:#dcd6ff;font-size:1.5rem}
-    .stFileUploader{background:rgba(162,138,255,0.1);border:2px solid #a28aff;border-radius:10px;padding:10px;margin-top:20px}
-    .stFileUploader label{color:#e0e0e0;font-size:1.1rem}
-    .stButton>button{background:#a28aff;color:#e0e0e0;border-radius:8px;padding:10px 20px;
-                     font-weight:bold;border:1px solid #dcd6ff;font-size:1rem}
-    .stButton>button:hover{background:#8b74e6;border-color:#a28aff}
-    .stDownloadButton>button{color:#000}
-    .stTextArea textarea,.stDataFrame{background:rgba(162,138,255,0.15);color:#e0e0e0;
-                                      border:1px solid #a28aff;border-radius:8px;padding:10px;
-                                      font-size:0.9rem;font-family:Arial,sans-serif}
-    .stAlert{background:rgba(220,214,255,0.2);color:#e0e0e0;border-radius:8px;font-size:0.9rem}
-    .stText,table{color:#e0e0e0;font-family:Arial,sans-serif;font-size:0.9rem}
-    .stDateInput label{color:#fff;font-size:1.1rem}
-    .stDateInput>div>div>input{color:#000 !important}
+    .stApp {
+        background-image: url('https://images.wallpaperscraft.com/image/single/planet_space_universe_127497_2560x1440.jpg');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-color: rgba(10,15,30,0.95);
+        color: #e0e0e0;
+        animation: panningBackground 30s linear infinite;
+    }
+    @keyframes panningBackground {
+        0% { background-position: 50% 0% }
+        50% { background-position: 50% 100% }
+        100% { background-position: 50% 0% }
+    }
+    h1 {
+        color: #a6b1e1;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff,
+                     0 0 10px rgba(166,177,225,0.8);
+        font-size: 2.5rem;
+    }
+    h2 { color: #dcd6ff; font-size: 1.5rem; }
+    .stFileUploader {
+        background: rgba(162,138,255,0.1);
+        border: 2px solid #a28aff;
+        border-radius: 10px;
+        padding: 10px;
+        margin-top: 20px;
+    }
+    .stFileUploader label { color: #e0e0e0; font-size: 1.1rem; }
+    .stButton>button {
+        background: #a28aff;
+        color: #e0e0e0;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-weight: bold;
+        border: 1px solid #dcd6ff;
+        font-size: 1rem;
+    }
+    .stButton>button:hover { background: #8b74e6; border-color: #a28aff; }
+    .stDownloadButton>button { color: #000; }
+    .stTextArea textarea, .stDataFrame {
+        background: rgba(162,138,255,0.15);
+        color: #e0e0e0;
+        border: 1px solid #a28aff;
+        border-radius: 8px;
+        padding: 10px;
+        font-size: 0.9rem;
+        font-family: Arial, sans-serif;
+    }
+    .stAlert { background: rgba(220,214,255,0.2); color: #e0e0e0; border-radius: 8px; font-size: 0.9rem; }
+    .stText, table { color: #e0e0e0; font-family: Arial, sans-serif; font-size: 0.9rem; }
+    .stDateInput label { color: #fff; font-size: 1.1rem; }
+    .stDateInput>div>div>input { color: #000 !important; }
 
-    /* MULTISELECT WITH REAL MAGNIFYING GLASS ICON */
+    /* MULTISELECT: MALINIS, WALANG ICON, "Choose an option" LANG */
     div[data-baseweb="select"] {
-        background:rgba(162,138,255,0.15) !important;
-        border:1px solid #a28aff !important;
-        border-radius:8px !important;
+        background: rgba(162,138,255,0.15) !important;
+        border: 1px solid #a28aff !important;
+        border-radius: 8px !important;
     }
     div[data-baseweb="select"] input {
-        background:rgba(162,138,255,0.15)!important;
-        color:#000!important;
+        background: rgba(162,138,255,0.15) !important;
+        color: #000 !important;
     }
+    /* TANGGALIN ANG LAHAT NG ::before (icon) */
     div[data-baseweb="select"] > div:first-child::before {
-        content: 'Magnifying Glass'; /* REAL ICON */
-        position: absolute;
-        left: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        pointer-events: none;
-        z-index: 1;
-        font-size: 1.3rem;
-        opacity: 0.85;
+        content: none !important;
     }
     div[data-baseweb="select"] > div:first-child > div {
-        padding-left: 38px !important;
+        padding-left: 12px !important; /* Normal padding lang */
     }
 
-    @media(max-width:600px){
-        h1{font-size:1.8rem}
-        .stFileUploader{margin-top:10px}
-        .stFileUploader label{font-size:0.9rem}
-        .stButton>button{padding:8px 16px;font-size:0.85rem}
-        .stTextArea textarea,.stDataFrame,.stAlert,.stText,table{font-size:0.8rem}
-        .stDateInput label{font-size:0.9rem}
-        div[data-baseweb="select"] > div:first-child::before {font-size:1.1rem; left:10px;}
-        div[data-baseweb="select"] > div:first-child > div {padding-left:32px !important;}
+    @media (max-width: 600px) {
+        h1 { font-size: 1.8rem; }
+        .stFileUploader { margin-top: 10px; }
+        .stFileUploader label { font-size: 0.9rem; }
+        .stButton>button { padding: 8px 16px; font-size: 0.85rem; }
+        .stTextArea textarea, .stDataFrame, .stAlert, .stText, table { font-size: 0.8rem; }
+        .stDateInput label { font-size: 0.9rem; }
     }
     </style>
     """,
@@ -385,7 +409,7 @@ with tab1:
         st.info("Upload Excel files above to merge and generate summary.")
 
 # -------------------------------------------------
-# TAB 2: PREDICTIVE SUMMARY (WITH REAL MAGNIFYING GLASS ICON)
+# TAB 2: PREDICTIVE SUMMARY (WALANG ICON!)
 # -------------------------------------------------
 with tab2:
     st.title("PREDICTIVE SUMMARY")
@@ -444,10 +468,11 @@ with tab2:
                     all_agents = sorted(totals_df["Collector Name"].unique())
                     st.markdown("**Search for Agent (Total)**")
                     search_agent_total = st.multiselect(
-                        "Select agents to view",
+                        "",  # Walang label
                         options=all_agents,
                         default=[],
-                        key="search_total"
+                        key="search_total",
+                        placeholder="Choose an option"  # Malinis na text lang
                     )
                     if search_agent_total:
                         filtered_totals = totals_df[totals_df["Collector Name"].isin(search_agent_total)]
@@ -464,10 +489,11 @@ with tab2:
                     all_agents_daily = sorted(daily_averages_df["Collector Name"].unique())
                     st.markdown("**Search for Agent (Daily Average)**")
                     search_agent_daily = st.multiselect(
-                        "Select agents to view",
+                        "",
                         options=all_agents_daily,
                         default=[],
-                        key="search_daily"
+                        key="search_daily",
+                        placeholder="Choose an option"
                     )
                     if search_agent_daily:
                         filtered_daily = daily_averages_df[daily_averages_df["Collector Name"].isin(search_agent_daily)]
