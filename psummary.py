@@ -344,27 +344,11 @@ with tab1:
                     "Average Wait Time", "Write Time", "AVG Write Time", "Pause Time"
                 ]
                 time_cols = [c for c in time_cols if c in df.columns]
-
-                def parse_time(x):
-                    if pd.isna(x):
-                        return 0
-                    if isinstance(x, str):
-                        try:
-                            parts = [int(i) for i in x.strip().split(":") if i.strip().isdigit()]
-                            total = 0
-                            for j, p in enumerate(reversed(parts[-3:])):
-                                total += p * (60 ** j)
-                            return total
-                        except:
-                            return 0
-                    else:
-                        try:
-                            return int(float(x))
-                        except:
-                            return 0
-
                 for c in time_cols:
-                    df[c] = df[c].apply(parse_time)
+                    df[c] = df[c].apply(
+                        lambda x: sum(int(i) * 60**j for j, i in enumerate(reversed(str(x).split(":"))))
+                        if pd.notna(x) and isinstance(x, str) else (int(x) if pd.notna(x) else 0)
+                    )
 
                 if "Total Calls" not in df.columns:
                     df["Total Calls"] = 1
