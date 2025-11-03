@@ -9,7 +9,7 @@ from openpyxl.styles import Alignment, Font
 from werkzeug.utils import secure_filename
 
 # -------------------------------------------------
-# Page config + Space-theme CSS (WALANG ICON, WALANG HARANG!)
+# Page config + Space-theme CSS
 # -------------------------------------------------
 st.set_page_config(page_title="NEIL", page_icon="Gem", layout="wide")
 st.markdown(
@@ -71,7 +71,6 @@ st.markdown(
     .stDateInput label { color: #fff; font-size: 1.1rem; }
     .stDateInput>div>div>input { color: #000 !important; }
 
-    /* MULTISELECT: MALINIS, WALANG ICON, "Choose an option" LANG */
     div[data-baseweb="select"] {
         background: rgba(162,138,255,0.15) !important;
         border: 1px solid #a28aff !important;
@@ -81,12 +80,11 @@ st.markdown(
         background: rgba(162,138,255,0.15) !important;
         color: #000 !important;
     }
-    /* TANGGALIN ANG LAHAT NG ::before (icon) */
     div[data-baseweb="select"] > div:first-child::before {
         content: none !important;
     }
     div[data-baseweb="select"] > div:first-child > div {
-        padding-left: 12px !important; /* Normal padding lang */
+        padding-left: 12px !important;
     }
 
     @media (max-width: 600px) {
@@ -113,7 +111,7 @@ if "last_uploaded_file" not in st.session_state:
     st.session_state.last_uploaded_file = None
 
 # -------------------------------------------------
-# SUMMARY HELPERS (same as before)
+# SUMMARY HELPERS
 # -------------------------------------------------
 def save_file_to_session(uploaded_file):
     filename = secure_filename(uploaded_file.name)
@@ -287,6 +285,20 @@ def calculate_top_agents_lowest_spent_time_per_campaign(df):
     disp = pd.DataFrame(rows,columns=["Agent","Average Spent Time"])
     return disp, top
 
+def calculate_bottom_10_agents_total_spent_time(df):
+    if not {"Collector Name", "Spent Time"}.issubset(df.columns):
+        return pd.DataFrame(columns=["Collector Name", "Total Spent Time"])
+    df = df.copy()
+    df["Spent_sec"] = df["Spent Time"].apply(time_to_seconds)
+    df = df[df["Spent_sec"] > 0]
+    if df.empty:
+        return pd.DataFrame(columns=["Collector Name", "Total Spent Time"])
+    totals = df.groupby("Collector Name")["Spent_sec"].sum().reset_index()
+    bottom_10 = totals.nsmallest(10, "Spent_sec").copy()
+    bottom_10["Total Spent Time"] = bottom_10["Spent_sec"].apply(seconds_to_time)
+    bottom_10 = bottom_10[["Collector Name", "Total Spent Time"]]
+    return bottom_10
+
 # -------------------------------------------------
 # Tabs
 # -------------------------------------------------
@@ -409,7 +421,7 @@ with tab1:
         st.info("Upload Excel files above to merge and generate summary.")
 
 # -------------------------------------------------
-# TAB 2: PREDICTIVE SUMMARY (WALANG ICON!)
+# TAB 2: PREDICTIVE SUMMARY
 # -------------------------------------------------
 with tab2:
     st.title("PREDICTIVE SUMMARY")
@@ -468,11 +480,11 @@ with tab2:
                     all_agents = sorted(totals_df["Collector Name"].unique())
                     st.markdown("**Search for Agent (Total)**")
                     search_agent_total = st.multiselect(
-                        "",  # Walang label
+                        "",
                         options=all_agents,
                         default=[],
                         key="search_total",
-                        placeholder="Choose an option"  # Malinis na text lang
+                        placeholder="Choose an option"
                     )
                     if search_agent_total:
                         filtered_totals = totals_df[totals_df["Collector Name"].isin(search_agent_total)]
@@ -513,22 +525,29 @@ with tab2:
 
                 # DOWNLOAD
                 top_agents_df, top_agents_excel = calculate_top_agents_lowest_spent_time_per_campaign(raw_df)
+                bottom_10_agents = calculate_bottom_10_agents_total_spent_time(raw_df)
+
                 output = io.BytesIO()
                 with pd.ExcelWriter(output, engine="openpyxl") as writer:
                     df_to_save = filtered_totals if 'filtered_totals' in locals() and not filtered_totals.empty else totals_df
                     if not df_to_save.empty:
                         df_to_save.to_excel(writer, index=False, sheet_name="Total per Agent")
+
                     df_daily = filtered_daily if 'filtered_daily' in locals() and not filtered_daily.empty else daily_averages_df
                     if not df_daily.empty:
                         df_daily.to_excel(writer, index=False, sheet_name="Average Daily per Agent")
+
                     if not campaign_averages_df.empty:
                         campaign_averages_df.to_excel(writer, index=False, sheet_name="Average per Campaign")
+
                     if not top_agents_excel.empty:
-                        sheet_name = "Top Agents Lowest Spent Time"
+                        sheet_name = "Top Agents Lowest Avg Spent"
                         workbook = writer.book
                         worksheet = workbook.create_sheet(title=sheet_name)
                         row_idx = 1
                         for campaign in sorted(top_agents_excel["Campaign"].dropna().unique()):
+                            if not campaign or not str(campaign).strip():
+                                continue
                             worksheet.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=2)
                             cell = worksheet.cell(row=row_idx, column=1)
                             cell.value = campaign
@@ -544,12 +563,16 @@ with tab2:
                                 row_idx += 1
                             row_idx += 1
                         worksheet.column_dimensions["A"].width = 35
-                        worksheet.column_dimensions["B"].width = 15
+                        worksheet.column_dimensions["B"].width = 18
+
+                    if not bottom_10_agents.empty:
+                        bottom_10_agents.to_excel(writer, index=False, sheet_name="Bottom 10 Total Spent Time")
+
                 output.seek(0)
                 st.download_button(
                     label="Download Summary Excel",
                     data=output,
-                    file_name=f"summary_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                    file_name=f"Summary_Data_{datetime.now():%m%d%y}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
     else:
